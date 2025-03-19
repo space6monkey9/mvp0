@@ -1,0 +1,160 @@
+/* Form Container */
+.table-container form {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+/* Form Grid Layout */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 15px;
+    width: 80%;
+    margin: 0 auto;
+}
+
+/* Form Elements */
+label {
+    text-align: right;
+    padding: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+input, textarea {
+    padding: 10px;
+    border: 2px solid #333;
+    border-radius: 4px;
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #666;
+    box-shadow: 0 0 3px rgba(0,0,0,0.2);
+}
+
+/* Style plugin dropdowns */
+.state-selector, .district-selector {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #333;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .state-selector, .district-selector {
+        font-size: 14px;
+        padding: 10px;
+    }
+}
+
+/* Submit Button */
+button[type="submit"] {
+    grid-column: 1 / -1;
+    justify-self: center;
+    margin-top: 20px;
+    width: 200px;
+}
+
+/* Optional Field Indicators */
+.table-container label:has(+ input:optional)::after {
+    content: " (optional)";
+    font-weight: normal;
+    color: #666;
+}
+
+/* Modal/Banner Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: #636262;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+.modal-content form {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.modal-content button {
+    width: 30%;
+    padding: 10px;
+    background-color: #000000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.modal-content button:hover {
+    background-color: #323232;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+        width: 95%;
+    }
+
+    label {
+        text-align: left;
+    }
+
+    button[type="submit"] {
+        width: 100%;
+    }
+}

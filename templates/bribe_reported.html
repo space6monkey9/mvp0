@@ -1,0 +1,19 @@
+<div id="bribeReportedBanner" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="hideBribeReportedBanner()">&times;</span>
+        <h2 style="color: green; margin-bottom: 15px;">Bribe Reported Successfully!</h2>
+        <p style="text-align: center;">Your Reporting ID is:  <span id="reportingId">{{ bribe_id }}</span></p>
+        <p>Use this Reporting ID or your username to track bribes later </p>
+    </div>
+</div>
+
+<script>
+    function hideBribeReportedBanner() {
+        document.getElementById('bribeReportedBanner').style.display = 'none';
+    }
+
+    function showBribeReportedBanner(bribeId) {
+        document.getElementById('reportingId').textContent = bribeId;
+        document.getElementById('bribeReportedBanner').style.display = 'block';
+    }
+</script>

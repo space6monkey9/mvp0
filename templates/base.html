@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}
+    <title>IPaidABribe</title>
+    {% endblock %}
+    <link rel="stylesheet" href="/static/styles.css">
+    {% block extra_css %}{% endblock %}
+    {% block extra_js %} 
+    <script src="static/track_bribe.js"></script>
+    {% endblock %}
+</head>
+<body>
+    <div class="header">
+        {% block button %}
+        <a href="/report" class="button-primary" >Report Bribe</a>
+        <div class="Disclaimer" >
+             <h2>*Reports are user-submitted and unverified</h2>
+        </div>
+        {% endblock %}
+        <button onclick="showTrackBribeForm()" class="button-primary">Track your Bribes</button>
+    </div>
+    <!-- Track Bribe Banner -->
+    <div id="trackBribeBanner" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideTrackBribeForm()">&times;</span>
+            <h2 style="margin-bottom: 15px;">Track Your Bribe</h2>
+            <form id="trackBribeForm" onsubmit="handleTrackBribeSubmit(event)">
+                <label for="trackUsername">Username:</label>
+                <input type="text" id="trackUsername" name="username">
+
+                <p style="text-align: center;">OR</p>
+    
+                <label for="reportingId">Reporting ID:</label>
+                <input type="text" id="reportingId" name="reportingId">
+    
+                <button type="submit" class="button-primary" style="display: block; margin: 0 auto;">Submit</button>
+            </form>
+            <div id="trackMessage"></div>
+        </div>
+    </div>
+    {% block content %}
+    <h1>Bribe Leaderboard</h1>
+    <div class="table-container">
+        <table class="leaderboard">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>State</th>
+                    <th>City</th>
+                    <th>Total Amount</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Loop through the bribes data -->
+                {% for bribe in bribes %}
+                <tr>
+                    <td>{{ bribe.ofcl_name }}</td>
+                    <td>{{ bribe.dept }}</td>
+                    <td>{{ bribe.state_ut }}</td>
+                    <td>{{ bribe.district }}</td>
+                    <td>${{ bribe.bribe_amt }}</td>
+                    <td><button class="button-primary">View Details</button></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="/?page={{ page - 1 }}" class="button-primary">Previous</a>
+        {% endif %}
+        <span>Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+            <a href="/?page={{ page + 1 }}" class="button-primary">Next</a>
+        {% endif %}
+    </div>
+    {% endblock %}
+</body>
+</html>

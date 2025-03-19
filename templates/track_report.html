@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}
+<title>Tracked Bribe Reports</title>
+{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+{% block button%}
+    <a href="/" class="button-primary" style="margin-right: 10px;">Home</a>
+    <div class="heading"><h1>Tracked Bribe Reports</h1></div>
+{% endblock %}
+{% block content %}
+<div class="table-container">
+    {% if bribes %}
+    <table class="leaderboard">
+        <thead>
+            <tr>
+                <th>Reporting ID</th>
+                <th>Username</th>
+                <th>Official Name</th>
+                <th>Department</th>
+                <th>Amount (₹)</th>
+                <th>State</th>
+                <th>District</th>
+                <th>Description</th>
+                <th>Date of Incident</th>
+                <th>Evidence</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bribe in bribes %}
+            <tr>
+                <td>{{ bribe.bribe_id }}</td>
+                <td>{{ bribe.username }}</td>
+                <td>{{ bribe.official_name }}</td>
+                <td>{{ bribe.department }}</td>
+                <td>{{ bribe.amount }}</td>
+                <td>{{ bribe.state }}</td>
+                <td>{{ bribe.district }}</td>
+                <td>{{ bribe.description }}</td>
+                <td>{{ bribe.date }}</td>
+                <td>
+                    {% if bribe.evidence %}
+                    <a href="{{ bribe.evidence }}" target="_blank">View Evidence</a>
+                    {% else %}
+                    No Evidence
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No bribe reports found for the provided information.</p>
+    {% endif %}
+</div>
+{% endblock %}
