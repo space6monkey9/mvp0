@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 
 app=FastAPI()
-app.add_middleware(SessionMiddleware, secret_key=os.environ.get(secret_key))
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 SQLModel.metadata.create_all(engine)

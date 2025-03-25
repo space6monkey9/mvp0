@@ -10,7 +10,7 @@
 .header {
     padding: 20px;
     display: flex;
-    justify-content: space-between; /* Changed back to space-between */
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
 }

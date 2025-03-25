@@ -20,7 +20,10 @@
              <h2>*Reports are user-submitted and unverified</h2>
         </div>
         {% endblock %}
-        <button onclick="showTrackBribeForm()" class="button-primary">Track your Bribes</button>
+        <div class="header-buttons" style="display: flexbox;">
+            <button class="button-primary" style="margin-left: auto;">Stats</button>
+            <button onclick="showTrackBribeForm()" class="button-primary">Track your Bribes</button>
+        </div>
     </div>
     <!-- Track Bribe Banner -->
     <div id="trackBribeBanner" class="modal">
@@ -51,7 +54,7 @@
                     <th>Department</th>
                     <th>State</th>
                     <th>City</th>
-                    <th>Total Amount</th>
+                    <th>Amount</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -63,7 +66,7 @@
                     <td>{{ bribe.dept }}</td>
                     <td>{{ bribe.state_ut }}</td>
                     <td>{{ bribe.district }}</td>
-                    <td>${{ bribe.bribe_amt }}</td>
+                    <td>₹{{ bribe.bribe_amt }}</td>
                     <td><button class="button-primary">View Details</button></td>
                 </tr>
                 {% endfor %}
