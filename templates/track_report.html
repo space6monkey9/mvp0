@@ -40,8 +40,8 @@
                 <td>{{ bribe.description }}</td>
                 <td>{{ bribe.date }}</td>
                 <td>
-                    {% if bribe.evidence %}
-                    <a href="{{ bribe.evidence }}" target="_blank">View Evidence</a>
+                    {% if bribe.has_evidence %}
+                    <a href="/evidence/{{ bribe.id }}" target="_blank">View Evidence</a>
                     {% else %}
                     No Evidence
                     {% endif %}

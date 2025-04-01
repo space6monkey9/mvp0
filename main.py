@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Form, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from .db import SQLModel, engine
@@ -10,6 +10,7 @@ import uuid
 import datetime
 from starlette.middleware.sessions import SessionMiddleware
 import os
+import mimetypes
 
 app=FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
@@ -31,6 +32,11 @@ async def index(request:Request, page: int = 1):
         total_bribes = session.exec(select(func.count(Bribe.id))).one()  
         total_pages = (total_bribes + 49) // 50  # Calculate total page
 
+        # Calculate total pages and page range
+        start_page = max(1, page - 1)
+        end_page = min(total_pages, page + 1)
+        page_numbers = list(range(start_page, end_page + 1))
+
         bribe_data = []
         for bribe in bribes:
             bribe_data.append({
@@ -42,7 +48,13 @@ async def index(request:Request, page: int = 1):
                 "doi": str(bribe.doi) if bribe.doi else "No Date", # Handle potential None
             })
 
-        return templates.TemplateResponse("base.html", {"request": request, "bribes": bribe_data, "page": page, "total_pages": total_pages})
+        return templates.TemplateResponse("base.html", {
+            "request": request, 
+            "bribes": bribe_data,
+            "page": page,
+            "total_pages": total_pages,
+            "page_numbers": page_numbers
+        })
 
 @app.get('/report')
 async def report(request:Request):
@@ -100,9 +112,14 @@ async def report_bribe(request: Request,
                 return JSONResponse({"error": "Invalid date format"}, status_code=422) # Return error if date format is invalid
 
         evidence_bytes = None # Initialize evidence_bytes to None
-        if evidence: # Check if evidence file was uploaded
-            evidence_bytes = await evidence.read() # Read the file content as bytes
+        original_filename = None 
+        content_type = None 
 
+        if evidence and evidence.filename: 
+            evidence_bytes = await evidence.read() 
+            original_filename = evidence.filename 
+            content_type = evidence.content_type 
+            
         # Create Bribe object without bribe_id initially
         bribe = Bribe(
             user=user,  # Associate the user object
@@ -115,6 +132,8 @@ async def report_bribe(request: Request,
             descr=description,
             doi=parsed_date,
             evidence=evidence_bytes,
+            evidence_filename=original_filename,
+            evidence_content_type=content_type, 
             user_id = user.id
         )
 
@@ -203,16 +222,8 @@ async def track_bribe(request: Request, username: str = Form(None), reportingId:
         print("CHECK 1")
         for bribe in bribes:
             print("CHECK 2")
-            evidence_content = None # Initialize evidence_content
-            if bribe.evidence: # Check if there's an evidence path
-                try:
-                   with open(bribe.evidence, 'rb') as evidence_file: # Open in binary read mode ('rb')
-                       evidence_content = base64.b64encode(evidence_file.read()).decode('utf-8') # Read as binary, encode to base64, then to string
-                except FileNotFoundError:
-                    evidence_content = "File not found" # Handle case where file is missing
-                except Exception as e:
-                    evidence_content = f"Error reading file: {e}" # Handle other potential errors
             bribe_data.append({
+                "id": str(bribe.id),
                 "username": bribe.user.username,
                 "official_name": bribe.ofcl_name,
                 "department": bribe.dept, 
@@ -221,7 +232,8 @@ async def track_bribe(request: Request, username: str = Form(None), reportingId:
                 "district": bribe.district,
                 "description": bribe.descr,
                 "date": str(bribe.doi) if bribe.doi else None, # Convert date to string for JSON
-                "evidence": evidence_content,
+                "has_evidence": bool(bribe.evidence),
+                # "evidence": evidence_content, serve files on a separate route
                 "bribe_id": bribe.bribe_id,
             })
             print("CHECK 3")
@@ -230,6 +242,36 @@ async def track_bribe(request: Request, username: str = Form(None), reportingId:
         print("CHECK 4")
         # Redirect to the track report page
         return RedirectResponse(url="/track_report", status_code=303)
+
+@app.get("/evidence/{bribe_db_id}")
+async def get_evidence(bribe_db_id: uuid.UUID):
+    
+    with Session(engine) as session:
+        # Find the bribe by its database primary key (UUID)
+        bribe = session.get(Bribe, bribe_db_id)
+
+        if not bribe:
+           
+            return JSONResponse(content={"error": "Bribe report not found"}, status_code=404)
+
+        if not bribe.evidence or not bribe.evidence_filename or not bribe.evidence_content_type:
+            # Check if evidence or necessary metadata is missing
+            return JSONResponse(content={"error": "No evidence or evidence metadata found for this report"}, status_code=404)
+
+        # Prepare headers
+        headers = {}
+        # Use Content-Disposition "inline" to suggest viewing in browser
+        # Provide the original filename
+        headers['Content-Disposition'] = f'inline; filename="{bribe.evidence_filename}"'
+
+        # Return the response with the file content, the correct media type (content type),
+        # and the Content-Disposition header.
+        return Response(
+            content=bribe.evidence,
+            media_type=bribe.evidence_content_type,
+            headers=headers
+        )
+
 
 @app.get('/track_report')
 async def track_report(request: Request):

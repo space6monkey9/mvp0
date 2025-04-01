@@ -22,7 +22,9 @@ class Bribe(SQLModel, table=True):
     descr: str = Field(max_length= 3000)
     doi: datetime.date | None = None
     evidence: bytes | None = None
-    bribe_id: str | None = None 
+    evidence_filename: str | None = None
+    evidence_content_type: str | None = None
+    bribe_id: str | None = None
     user_id: int = Field(foreign_key="user.id")
 
 

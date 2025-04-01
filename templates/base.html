@@ -79,7 +79,13 @@
         {% if page > 1 %}
             <a href="/?page={{ page - 1 }}" class="button-primary">Previous</a>
         {% endif %}
-        <span>Page {{ page }} of {{ total_pages }}</span>
+        {% for p in page_numbers %}
+            {% if p == page %}
+                <span class="current-page">{{ p }}</span>
+            {% else %}
+                <a href="/?page={{ p }}" class="button-primary">{{ p }}</a>
+            {% endif %}
+        {% endfor %}
         {% if page < total_pages %}
             <a href="/?page={{ page + 1 }}" class="button-primary">Next</a>
         {% endif %}

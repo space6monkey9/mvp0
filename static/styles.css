@@ -161,6 +161,14 @@ h2 {
     background-color: #323232;
 }
 
+.current-page {
+    padding: 5px 10px;
+    margin: 0 5px;
+    background: #666;
+    color: white;
+    border-radius: 3px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .table-container {
