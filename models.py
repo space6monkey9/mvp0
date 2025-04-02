@@ -1,6 +1,6 @@
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 import datetime
-from typing import List
+from typing import List, Optional
 import uuid
 
 print("models.py file is being executed!")
@@ -21,9 +21,7 @@ class Bribe(SQLModel, table=True):
     district: str
     descr: str = Field(max_length= 3000)
     doi: datetime.date | None = None
-    evidence: bytes | None = None
-    evidence_filename: str | None = None
-    evidence_content_type: str | None = None
+    evidence_urls: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     bribe_id: str | None = None
     user_id: int = Field(foreign_key="user.id")
 

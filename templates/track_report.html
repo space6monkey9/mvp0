@@ -40,8 +40,12 @@
                 <td>{{ bribe.description }}</td>
                 <td>{{ bribe.date }}</td>
                 <td>
-                    {% if bribe.has_evidence %}
-                    <a href="/evidence/{{ bribe.id }}" target="_blank">View Evidence</a>
+                    {% if bribe.evidence_urls and bribe.evidence_urls|length > 0 %}
+                    {% for url in bribe.evidence_urls %}
+                    <a href="{{ url }}" target="_blank">{{ loop.index }} </a>
+                    {% if not loop.last %} 
+                    {% endif %} {# Display number as hyperlink #}
+                    {% endfor %}
                     {% else %}
                     No Evidence
                     {% endif %}
