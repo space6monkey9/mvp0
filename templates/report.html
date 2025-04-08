@@ -76,7 +76,6 @@
     stateDistrict('state', 'district');
    });
 </script>
-<script src="/static/username.js"> </script>
 {% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="/static/report.css">
@@ -84,28 +83,10 @@
 </head>
 <body>
 {% block button%}
-<div class="header">
-    <a href="/" class="button-primary" style="padding: 5px 10px; text-decoration:none; margin-right: 10px;">Home</a>
-    <button onclick="showUsernameForm()" class="button-primary" style="padding: 7px 10px; text-decoration:none;">Create Username</button> 
+<div class="subheader">
+    <a href="/"> <button class="button-primary"> Home </button></a> 
 </div>
-<!-- Username Creation Banner -->
-<div id="usernameBanner" class="modal">
-    <div class="modal-content" >
-        <span class="close" onclick="hideUsernameForm()">&times;</span>
-        <h2>Create Your Username</h2>
-        <p style="color: rgb(75, 84, 93); text-align: center; margin-top: 10px;">*you can use this username to track bribes later</p>
-        <form id="usernameForm" onsubmit="handleUsernameSubmit(event)">
-            <label for="newUsername">Username:</label>
-            <input type="text" id="newUsername" name="newUsername" required pattern="^[a-zA-Z0-9\S]+$">
 
-            <label for="confirmUsername">Confirm Username:</label>
-            <input type="text" id="confirmUsername" name="confirmUsername" required pattern="^[a-zA-Z0-9\S]+$">
-
-            <button type="submit" class="button-primary" style="display: block; margin: 0 auto;" >Submit</button>
-        </form>
-        <div id="message"></div>
-    </div>
-</div>
 <!-- Incorrect Username Banner -->
 <div id="banner-container">
     {% include "incorrect_username.html" %}
@@ -114,8 +95,9 @@
 </div>
 {% endblock %}
 {% block content %}
+
 <div class="table-container">
-    <h1>Report a Bribe</h1>
+    <h1>Report Bribe:</h1>
     <form method="POST" enctype="multipart/form-data" class="form-grid"  action="/report_bribe">
         <!-- Required Fields -->
         <label for="username">Username:</label>
@@ -148,7 +130,7 @@
 
         <!-- Optional Fields -->
         <label for="date">Date of Incident:</label>
-        <input type="date" id="date" name="date" value="">
+        <input type="date" id="date" name="date" max= "{{current_date}}"  value="">
          
         <label for="evidence">Evidence Upload:</label>
         <input type="file" id="evidence" name="evidence_files" accept=".pdf,.jpg,.png" multiple>

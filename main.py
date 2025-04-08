@@ -5,14 +5,13 @@ from fastapi.templating import Jinja2Templates
 from .db import SQLModel, engine
 from .models import User, Bribe
 from sqlmodel import Session, select, func
-import base64
-import uuid
 import datetime
 from starlette.middleware.sessions import SessionMiddleware
 import os
-import mimetypes
-from supabase import create_client, Client, create_async_client, AsyncClient
+from supabase import create_async_client
 from typing import List
+import datetime
+import bcrypt
 
 async def startup_event():
     global supabase
@@ -66,8 +65,10 @@ async def index(request:Request, page: int = 1):
 
 @app.get('/report')
 async def report(request:Request):
-
-    return templates.TemplateResponse("report.html",{"request": request})
+    current_date = datetime.date.today()
+    formatted_date = current_date.strftime('%Y-%m-%d') 
+     
+    return templates.TemplateResponse("report.html", {"request": request, "current_date": formatted_date})
 
 @app.post('/create_username')
 async def create_username(username_data: dict):
@@ -82,8 +83,16 @@ async def create_username(username_data: dict):
         if existing_user:
             print("WTF!!!")
             return JSONResponse({"error": "Username already exists"}, status_code=409) # Return 409(conflict) status code
+        
+        password = username_data['password']
+
+        # Generate salt with cost factor 12 and hash the password
+        salt = bcrypt.gensalt(rounds=12)
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
+
+        print(f"username: {username_data['username']} password: {hashed_password}")
             
-        user = User(username=username_data['username'])
+        user = User(username=username_data['username'], password=hashed_password)
         session.add(user)
         session.commit()
         return JSONResponse({"message": "Username created successfully"}, status_code=200)
@@ -273,7 +282,7 @@ async def track_bribe(request: Request, username: str = Form(None), reportingId:
         if not bribes:
             print("Nothing")
             # Return JSON error or render a template indicating no reports found
-            return templates.TemplateResponse("track_report.html", {"request": request, "bribes": [], "error": "No reports found for the provided information."})
+            return JSONResponse( {"error": "No reports found for the provided information."})
 
         
         bribe_data = []

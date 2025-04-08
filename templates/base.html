@@ -11,20 +11,45 @@
     {% block extra_js %} 
     <script src="static/track_bribe.js"></script>
     {% endblock %}
+    <script src="/static/username.js"> </script>
 </head>
 <body>
     <div class="header">
         {% block button %}
-        <a href="/report" class="button-primary" >Report Bribe</a>
-        <div class="Disclaimer" >
-             <h2>*Reports are user-submitted and unverified</h2>
+        <div class="sub-header"> 
+        <a href="/report"> <button class="button-primary">Report Bribe</button></a>
+        <button onclick="showUsernameForm()" class="button-primary"> Create Account </button>
+        <button class="button-primary">Sign-in to Report Bribe</button>
         </div>
         {% endblock %}
-        <div class="header-buttons" style="display: flexbox;">
-            <button class="button-primary" style="margin-left: auto;">Stats</button>
+        <div class="header-buttons" >
+            <button class="button-primary" style="margin-left: auto;">Check Stats</button>
             <button onclick="showTrackBribeForm()" class="button-primary">Track your Bribes</button>
         </div>
     </div>
+
+    <!-- Account Creation Banner -->
+<div id="usernameBanner" class="modal">
+    <div class="modal-content" >
+        <span class="close" onclick="hideUsernameForm()">&times;</span>
+        <h2>Create Your Account</h2>
+        <p style="color: rgb(75, 84, 93); text-align: center; margin-top: 10px;">*use your account to track your bribes</p>
+        <form id="usernameForm" onsubmit="handleUsernameSubmit(event)">
+            <label for="newUsername">Username:</label>
+            <input type="text" id="newUsername" name="newUsername" required pattern="^[a-zA-Z0-9\S]+$">
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8">
+
+            <label for="confirmPassword">Confirm Password:</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8">
+
+            <button type="submit" class="button-primary" style="display: block; margin: 0 auto;" >Submit</button>
+        </form>
+        <div id="message"></div>
+    </div>
+</div>
+
     <!-- Track Bribe Banner -->
     <div id="trackBribeBanner" class="modal">
         <div class="modal-content">
@@ -45,7 +70,9 @@
         </div>
     </div>
     {% block content %}
-    <h1>Bribe Leaderboard</h1>
+
+   <h2>*Reports are user-submitted and not verified</h2>
+   <h1>Bribe Leaderboard</h1>
     <div class="table-container">
         <table class="leaderboard">
             <thead>

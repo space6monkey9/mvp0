@@ -11,11 +11,12 @@ async function handleUsernameSubmit(event) {
     event.preventDefault();
     const form = event.target;
     const username = form.newUsername.value;
-    const confirmUsername = form.confirmUsername.value;
+    const password = form.password.value;
+    const confirmPassword = form.confirmPassword.value;
     const messageDiv = document.getElementById('message');
 
-    if (username !== confirmUsername) {
-        messageDiv.innerHTML = 'Usernames do not match!';
+    if (password !== confirmPassword) {
+        messageDiv.innerHTML = 'Passwords do not match!';
         messageDiv.style.color = 'red';
         return;
     }
@@ -26,7 +27,7 @@ async function handleUsernameSubmit(event) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username, password })
         });
 
         const result = await response.json();

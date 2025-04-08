@@ -9,6 +9,7 @@ class User(SQLModel, table=True):
     bribes: List["Bribe"] = Relationship(back_populates="user")
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(index=True, max_length=20, unique=True)
+    password: str 
 
 class Bribe(SQLModel, table=True):
     user: User = Relationship(back_populates="bribes")
