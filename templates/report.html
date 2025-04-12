@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+<head>
+    {% block title %}
+    <title>Report Bribe</title>
+    {% endblock %}
+{% block extra_js %}
+<script>
+    function showIncorrectUsernameBanner() {
+        document.getElementById('incorrectUsernameBanner').style.display = 'block';
+    }
+
+    function hideIncorrectUsernameBanner() {
+        document.getElementById('incorrectUsernameBanner').style.display = 'none';
+    }
+
+    function showBribeReportedBanner(bribeId) {
+        document.getElementById('reportingId').textContent = bribeId;
+        document.getElementById('bribeReportedBanner').style.display = 'block';
+    }
+
+    function hideBribeReportedBanner() {
+        document.getElementById('bribeReportedBanner').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('incorrectUsernameBanner').style.display = 'none'; 
+        document.getElementById('bribeReportedBanner').style.display = 'none'; 
+    });
+
+    async function submitReport(event) {
+        event.preventDefault(); 
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch('/report_bribe', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const html = await response.text();
+                if (html.includes('bribeReportedBanner')) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    const bannerContent = tempDiv.querySelector('#bribeReportedBanner');
+                    const bribeIdElement = bannerContent.querySelector('#reportingId');
+                    const bribeId = bribeIdElement.textContent;
+                    showBribeReportedBanner(bribeId);
+                    form.reset();
+                } else if (html.includes('incorrectUsernameBanner')) {
+                    showIncorrectUsernameBanner();
+                }
+            } else if (response.status === 404) {
+                showIncorrectUsernameBanner();
+            } else {
+                alert('Error reporting bribe. Please try again.');
+            }
+        } catch (error) {
+            console.error('Network error:', error);
+        alert('Network error. Please try again.');
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const reportForm = document.querySelector('.form-grid');
+        reportForm.addEventListener('submit', submitReport);
+    });
+</script>
+<script src="/static/states.js"></script>
+<script src="static/track_bribe.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    stateDistrict('state', 'district');
+   });
+</script>
+{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/report.css">
+{% endblock %}
+</head>
+<body>
+{% block button%}
+<div class="subheader">
+    <a href="/"> <button class="button-primary"> Home </button></a> 
+</div>
+{% block welcome_message %}
+    <span class="welcome-message">Welcome, {{ current_user.user_metadata.get('username', 'User') }}!</span>
+{% endblock %}
+{% endblock %}
+<!-- Incorrect Username Banner -->
+<div id="banner-container">
+    {% include "incorrect_username.html" %}
+<!-- Bribe Reported Banner -->
+    {% include "bribe_reported.html" %}
+</div>
+
+{% block content %}
+
+<div class="table-container">
+    <h1>Report Bribe:</h1>
+    <form method="POST" enctype="multipart/form-data" class="form-grid"  action="/report_bribe">
+        <!-- Required Fields -->
+        
+        <label for="official">Official's Name: </label>
+        <input type="text" id="official" name="official">
+
+        <label for="department">Department:</label>
+        <input type="text" id="department" name="department" required>
+
+        <label for="amount">Bribe Amount: (₹):</label>
+        <input type="text" id="amount" name="amount" required min="10" pattern="[0-9]+">
+
+        <label for="pincode">PIN Code:</label>
+        <input type="text" id="pincode" name="pincode" pattern="[0-9]{6}">
+
+        <label for="state">State/UT:</label>
+        <select id="state" name="state" required class="state-selector">
+            <option value="state">Select State/UT</option>
+        </select>
+
+        <label for="district">District:</label>
+        <select id="district" name="district" required class="district-selector" disabled>
+            <option value="">Select State First</option>
+        </select>
+
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="4" required></textarea>
+
+        <!-- Optional Fields -->
+        <label for="date">Date of Incident:</label>
+        <input type="date" id="date" name="date" max= "{{current_date}}"  value="">
+         
+        <label for="evidence">Evidence Upload:</label>
+        <input type="file" id="evidence" name="evidence_files" accept=".pdf,.jpg,.png" multiple>
+
+        <button type="submit" class="button-primary">Submit Report</button>
+    </form>
+</div>
+{% endblock %}
+</body>

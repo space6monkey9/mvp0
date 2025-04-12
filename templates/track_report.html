@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}
+<title>Tracked Bribe Reports</title>
+{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+{% block button%}
+    <a href="/" class="button-primary" style="margin-right: 10px;">Home</a>
+    <div class="heading"><h1>Tracked Bribe Reports</h1></div>
+{% endblock %}
+{% block content %}
+<div class="table-container">
+    {% if error %}
+       <p style="color: red; text-align: center;">{{ error }}</p>
+    {% endif %}
+    {% if bribes %}
+    <table class="leaderboard">
+        <thead>
+            <tr>
+                <th>Reporting ID</th>
+                <th>Username</th>
+                <th>Official Name</th>
+                <th>Department</th>
+                <th>Amount (₹)</th>
+                <th>State</th>
+                <th>District</th>
+                <th>Description</th>
+                <th>Date of Incident</th>
+                <th>Evidence</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bribe in bribes %}
+            <tr>
+                <td>{{ bribe.bribe_id }}</td>
+                <td>{{ bribe.username }}</td>
+                <td>{{ bribe.official_name }}</td>
+                <td>{{ bribe.department }}</td>
+                <td>{{ bribe.amount }}</td>
+                <td>{{ bribe.state }}</td>
+                <td>{{ bribe.district }}</td>
+                <td>{{ bribe.description }}</td>
+                <td>{{ bribe.date }}</td>
+                <td>
+                    {% if bribe.evidence_urls and bribe.evidence_urls|length > 0 %}
+                    {% for url in bribe.evidence_urls %}
+                    <a href="{{ url }}" target="_blank">{{ loop.index }} </a>
+                    {% if not loop.last %} 
+                    {% endif %} {# Display number as hyperlink #}
+                    {% endfor %}
+                    {% else %}
+                    No Evidence
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% elif not error %}
+    <p>No bribe reports found for the provided information.</p>
+    {% endif %}
+</div>
+{% endblock %}
