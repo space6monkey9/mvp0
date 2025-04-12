@@ -19,14 +19,11 @@
         {% block button %}
         <div class="sub-header">
             {% if current_user %}
-                <!-- User is logged in -->
                  <a href="/report"> <button class="button-primary">Report Bribe</button></a>
-                 <!-- Use a form for POST signout -->
                  <form action="/signout" method="post" style="display: inline;">
                     <button type="submit" class="button-primary">Sign-out</button>
                  </form>
             {% else %}
-                <!-- User is logged out -->
                 <button onclick="showUsernameForm()" class="button-primary"> Create Account </button>
                 <button onclick="showSigninForm('Sign-in to Report Bribe')" class="button-primary">Sign-in to Report</button>     
             {% endif %}
@@ -131,7 +128,7 @@
         </div>
     </div>
     {% block content %}
-    <!-- Display track_error message if redirected from track_bribe -->
+  
     {% if error %}
        <div class="error-message" style="color: red; text-align: center; margin-bottom: 15px;">{{ error }}</div>
     {% endif %}
@@ -151,7 +148,7 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Loop through the bribes data -->
+                
                 {% for bribe in bribes %}
                 <tr>
                     <td>{{ bribe.ofcl_name }}</td>

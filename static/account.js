@@ -3,18 +3,16 @@ function showUsernameForm() {
     const form = document.getElementById('usernameForm');
     form.reset();
 
-    // Clear the feedback/suggestion elements initially
     const availabilityStatusEl = document.getElementById('usernameAvailabilityStatus');
     const addTextEl = document.getElementById('addText');
     const suggestionsEl = document.getElementById('usernameSuggestions');
-    const messageEl = document.querySelector('#usernameBanner .modal-content #message'); // Also clear general message area
+    const messageEl = document.querySelector('#usernameBanner .modal-content #message'); 
 
     if (availabilityStatusEl) availabilityStatusEl.textContent = '';
-    if (addTextEl) addTextEl.textContent = ''; // Clear "Try:" text
-    if (suggestionsEl) suggestionsEl.innerHTML = ''; // Clear suggestions
-    if (messageEl) messageEl.innerHTML = ''; // Clear any previous submission messages
+    if (addTextEl) addTextEl.textContent = '';
+    if (suggestionsEl) suggestionsEl.innerHTML = ''; 
+    if (messageEl) messageEl.innerHTML = ''; 
 
-    // Hide initially
     const refreshButton = document.getElementById('refreshSuggestions');
     if (refreshButton) refreshButton.style.display = 'none'; 
 }
@@ -27,7 +25,6 @@ function hideUsernameForm() {
 function showSigninForm(title = "Sign-in to Report") {
     const banner = document.getElementById('signinBanner');
         if (banner) {
-            // Find the h2 element within the banner and set its text
             const heading = banner.querySelector('h2');
             if (heading) {
                 heading.textContent = title;
@@ -50,10 +47,9 @@ const DEBOUNCE_DELAY = 500; // milliseconds
 async function checkUsernameAvailability(username) {
     const availabilityStatusEl = document.getElementById('usernameAvailabilityStatus');
     if (!username || username.length < 3 || !/^(?!\d+$)(?!\d)[a-zA-Z0-9]+$/.test(username)) {
-        availabilityStatusEl.textContent = ''; // Clear status if invalid
-        return false; // Indicate invalid/unchecked
+        availabilityStatusEl.textContent = ''; 
+        return false; 
     }
-    console.log("Checking availability for:", username); // Add a log
 
     try {
         const response = await fetch('/check_username', {
@@ -67,31 +63,28 @@ async function checkUsernameAvailability(username) {
             availabilityStatusEl.style.color = result.available ? 'green' : 'red';
             return result.available;
         } else {
-            console.log("Response is: ", result); // Add a log")
             availabilityStatusEl.textContent = '⚠️ Error checking';
             availabilityStatusEl.style.color = 'orange';
-            console.error("Error checking username:", result.error);
             return false;
         }
     } catch (error) {
         availabilityStatusEl.textContent = '⚠️ Network Error';
         availabilityStatusEl.style.color = 'orange';
-        console.error("Network error checking username:", error);
         return false;
     }
 }
 
-// Function to generate simple suggestions
+
 function generateSuggestions(username) {
     const suggestionsEl = document.getElementById('usernameSuggestions');
-    suggestionsEl.innerHTML = ''; // Clear previous suggestions
+    suggestionsEl.innerHTML = ''; 
 
     if (!username || !/^(?!\d+$)(?!\d)[a-zA-Z0-9]+$/.test(username)) {
-        return; // Don't generate if base is invalid
+        return; 
     }
 
     const suggestions = [];
-    // Simple suggestion logic: append numbers or slightly vary
+    
     suggestions.push(`${username}${Math.floor(Math.random() * 100)}`);
     if (username.length > 5) {
         suggestions.push(`${username.substring(0, username.length - 2)}${Math.floor(Math.random() * 90 + 10)}`);
@@ -99,9 +92,8 @@ function generateSuggestions(username) {
          suggestions.push(`${username}User${Math.floor(Math.random() * 10)}`);
     }
 
-
     suggestions.slice(0, 2).forEach(suggestion => {
-        // Basic length check for suggestions
+
         if (suggestion.length >= 3) {
             const suggestionSpan = document.createElement('span');
             suggestionSpan.textContent = suggestion;
@@ -109,7 +101,7 @@ function generateSuggestions(username) {
             suggestionSpan.onclick = () => {
                 const usernameInput = document.getElementById('newUsername');
                 usernameInput.value = suggestion;
-                // Trigger input event manually to re-check availability and clear suggestions
+               
                 usernameInput.dispatchEvent(new Event('input'));
             };
             suggestionsEl.appendChild(suggestionSpan);
@@ -125,7 +117,6 @@ async function handleUsernameSubmit(event) {
     const confirmPassword = form.querySelector('#signupPassword').value;
     const messageDiv = document.querySelector('#usernameBanner .modal-content #message');
 
-    // Clear previous messages
     messageDiv.innerHTML = '';
     messageDiv.style.color = '';
 
@@ -176,7 +167,6 @@ async function handleSigninSubmitForm(event) {
     const password = form.querySelector('#signinPassword').value;
     const messageDiv = document.querySelector('#signinBanner .modal-content #message');
 
-    // Clear previous messages
     messageDiv.innerHTML = '';
     messageDiv.style.color = '';
 
@@ -193,8 +183,7 @@ async function handleSigninSubmitForm(event) {
         try {
             result = await response.json();
         } catch (jsonError) {
-            // Handle cases where response is not JSON e.g., unexpected server error HTML page
-            console.error("Failed to parse JSON response:", jsonError);
+            
             messageDiv.innerHTML = 'An unexpected error occurred. Please try again.';
             messageDiv.style.color = 'red';
             return; 
@@ -204,16 +193,16 @@ async function handleSigninSubmitForm(event) {
             messageDiv.innerHTML = result.message ||'Signed-in Succeessfully!';
             messageDiv.style.color = 'green';
             if (result.redirect_url) {
-                // Add a small delay 
+                
                 setTimeout(() => {
                     window.location.href = result.redirect_url;
                 }, 1000); 
             } else {
-                 // Optionally hide form if no redirect URL is provided
+                 
                  setTimeout(hideSigninForm, 1000);
             }
         } else {
-            // Display error from JSON response
+           
             messageDiv.innerHTML = result.error || 'Error signing in - please try again';
             messageDiv.style.color = 'red';
             setTimeout(() => {
@@ -222,8 +211,7 @@ async function handleSigninSubmitForm(event) {
             }, 1500);
         }
     } catch (error) {
-        // This catch block now primarily handles actual network failures (e.g., server down)
-        console.error("Network or other error during signin fetch:", error);
+        
         messageDiv.innerHTML = 'Network error or server issue - please try again';
         messageDiv.style.color = 'red';
         setTimeout(() => {
@@ -245,15 +233,11 @@ function togglePasswordVisibility() {
     });
 }
 
-// --- Wrap event listener attachments and style injection in DOMContentLoaded ---
 document.addEventListener('DOMContentLoaded', (event) => {
 
-    // Event listener for username input
     const usernameInput = document.getElementById('newUsername');
     if (usernameInput) {
-        // Add a simple console log to verify listener attachment
-        console.log("Attaching input listener to #newUsername");
-
+        
         usernameInput.addEventListener('input', (event) => {
             const username = event.target.value;
             const refreshButton = document.getElementById('refreshSuggestions');
@@ -261,14 +245,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const availabilityStatusEl = document.getElementById('usernameAvailabilityStatus');
             const addTextEl = document.getElementById('addText');
 
-             // Add a log inside the listener
-            console.log("Input event fired. Username:", username);
-
-
-            // Clear previous debounce timer
             clearTimeout(debounceTimer);
 
-            // Basic validation feedback
             if (username.length > 0 && /^\d+/.test(username)) {
                 availabilityStatusEl.textContent = 'cannot start with digits';
                 availabilityStatusEl.style.color = 'orange';
@@ -283,7 +261,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                  suggestionsEl.innerHTML = '';
                  refreshButton.style.display = 'none';
                  addTextEl.textContent= "";
-                 return; ///^\d+/
+                 return; 
             }
             if (username.length > 0 && !/^(?!\d+$)(?!\d)[a-zA-Z0-9]+$/.test(username)) {
                 availabilityStatusEl.textContent = 'Alphanumeric only';
@@ -293,7 +271,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 addTextEl.textContent= "";
                 return;
             }
-            // Clear status and suggestions while typing or if empty
+        
             if (username.length === 0) {
                 availabilityStatusEl.textContent = '';
                 suggestionsEl.innerHTML = '';
@@ -301,14 +279,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 addTextEl.textContent= "";
                 return;
             }
-            // Set a new timer
+            
             debounceTimer = setTimeout(async () => {
-                // Add a log before fetch
-                console.log("Debounce timer finished. Checking availability for:", username);
+                
                const isAvailable = await checkUsernameAvailability(username);
                refreshButton.style.display = 'block';
-                // Add a log after fetch
-                console.log("Availability check complete. Is available:", isAvailable);
+    
                if (isAvailable) { 
                    suggestionsEl.innerHTML = '';
                    addTextEl.textContent= "";
@@ -323,26 +299,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
          console.error("#newUsername input element not found when trying to attach listener.");
     }
 
-    // Event listener for the refresh suggestions button
     const refreshButton = document.getElementById('refreshSuggestions');
     if (refreshButton) {
-        console.log("Attaching click listener to #refreshSuggestions"); // Verify button listener
+        
         refreshButton.addEventListener('click', () => {
             const username = document.getElementById('newUsername').value;
-             console.log("Refresh button clicked. Current username:", username); // Log refresh click
             if (username && username.length >= 3 && /^(?!\d+$)(?!\d)[a-zA-Z0-9]+$/.test(username)) {
-                generateSuggestions(username); // Regenerate based on current input
+                generateSuggestions(username);
             } else {
-                document.getElementById('usernameSuggestions').innerHTML = ''; // Clear if input invalid
+                document.getElementById('usernameSuggestions').innerHTML = ''; 
             }
         });
     } else {
         console.error("#refreshSuggestions button element not found.");
     }
 
-
-    // Add styles for suggestions (optional, can be in styles.css)
-    // Moved style injection here too, ensures stylesheets are loaded
     const styleSheet = document.styleSheets[0];
     if (styleSheet) {
         try {
@@ -366,7 +337,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         } catch (e) {
             console.error("Could not insert CSS rules:", e);
-            // Fallback: Add style element to head if insertRule fails (e.g., CORS)
+            // Fallback
             const style = document.createElement('style');
             style.textContent = `
                  #usernameBanner .username-feedback { margin-top: 5px; font-size: 0.9em; min-height: 25px; display: flex; align-items: center; flex-wrap: wrap; }
@@ -378,8 +349,5 @@ document.addEventListener('DOMContentLoaded', (event) => {
             `;
             document.head.appendChild(style);
         }
-    } else {
-         console.error("Stylesheet not found for injecting rules.");
-    }
-
+    } 
 });

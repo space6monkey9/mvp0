@@ -23,12 +23,12 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('incorrectUsernameBanner').style.display = 'none'; // Initially hide the banner
-        document.getElementById('bribeReportedBanner').style.display = 'none'; // Initially hide the banner
+        document.getElementById('incorrectUsernameBanner').style.display = 'none'; 
+        document.getElementById('bribeReportedBanner').style.display = 'none'; 
     });
 
     async function submitReport(event) {
-        event.preventDefault(); // Prevent default form submission
+        event.preventDefault(); 
 
         const form = event.target;
         const formData = new FormData(form);
@@ -48,7 +48,6 @@
                     const bribeIdElement = bannerContent.querySelector('#reportingId');
                     const bribeId = bribeIdElement.textContent;
                     showBribeReportedBanner(bribeId);
-                    // Optionally clear the form after successful submission
                     form.reset();
                 } else if (html.includes('incorrectUsernameBanner')) {
                     showIncorrectUsernameBanner();
@@ -56,7 +55,6 @@
             } else if (response.status === 404) {
                 showIncorrectUsernameBanner();
             } else {
-                // Handle other errors if needed, maybe display a generic error message
                 alert('Error reporting bribe. Please try again.');
             }
         } catch (error) {

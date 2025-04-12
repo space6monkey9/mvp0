@@ -833,17 +833,17 @@
     Puducherry: ['Karaikal', 'Mahé', 'Puducherry', 'Yanam'],
   };
 
-// Add this initialization function
+
 function initializeStates() {
-  console.log('Initializing states...'); // Debug 1
+  
   const stateSelect = document.getElementById('state');
-  console.log('State select element:', stateSelect); // Debug 2
+  
   
   stateSelect.innerHTML = '<option value="">Select State/UT</option>';
   
-  console.log('India object keys:', Object.keys(india)); // Debug 3
+  
   Object.keys(india).sort().forEach(state => {
-      console.log('Adding state:', state); // Debug 4
+      
       const option = document.createElement('option');
       option.value = state.trim();
       option.textContent = state;
@@ -851,12 +851,10 @@ function initializeStates() {
   });
 }
 
-// Modified stateDistrict function
 const stateDistrict = (s, d) => {
   const stateElement = document.getElementById(s);
   const districtElement = document.getElementById(d);
 
-  // Initialize states on load
     initializeStates();
 
     stateElement.addEventListener('change', function() {
@@ -864,7 +862,6 @@ const stateDistrict = (s, d) => {
         districtElement.innerHTML = '<option value="">Select District</option>';
         districtElement.disabled = true;
 
-        // Get districts directly from india object
         if (selectedState && india[selectedState]) {
             districtElement.disabled = false;
             india[selectedState].forEach(district => {

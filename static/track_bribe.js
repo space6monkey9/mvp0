@@ -11,7 +11,7 @@ function hideTrackBribeForm() {
 }
 
 function handleTrackBribeSubmit(event) {
-    event.preventDefault(); // Prevent default form submission
+    event.preventDefault(); 
 
     const form = event.target;
     const formData = new FormData(form);
@@ -22,7 +22,6 @@ function handleTrackBribeSubmit(event) {
 
     const trackBribeForm = document.getElementById('trackBribeForm');
 
-    // Check if all form fields are empty
     let isEmpty = true;
     for (let pair of formData.entries()) {
         if (pair[1].trim() !== '') {
@@ -38,7 +37,7 @@ function handleTrackBribeSubmit(event) {
             trackMessageDiv.innerHTML = '';
             trackMessageDiv.style.color = '';
         }, 1500);
-        return; // Stop form submission
+        return; 
     }
 
     fetch('/track_bribe', {
@@ -46,9 +45,9 @@ function handleTrackBribeSubmit(event) {
         body: formData,
     })
     .then(response => {
-        // Check if the request was successful 
+        
         if (response.ok) {
-            return response.text(); // Get HTML content if successful
+            return response.text(); 
         } else{
             return response.text().then(text => {
                 //throw an error from JSON
@@ -58,17 +57,13 @@ function handleTrackBribeSubmit(event) {
         }
     })
     .then(html => {
-        //  Replace the entire page content with the received HTML
         document.body.innerHTML = html;
     })
     
     .catch(error => {
-        //  catches network errors 
-        console.error('Error tracking bribe:', error);
-        // Display the error message within the existing form structure
         trackMessageDiv.innerHTML = `<p style="color: red; text-align:center;">Error: ${error.message}</p>`;
         trackMessageDiv.style.color = 'red';
-        if (trackBribeForm) { // Check if form still exists
+        if (trackBribeForm) { 
             trackBribeForm.reset();
         }
         setTimeout(() => {
@@ -76,9 +71,8 @@ function handleTrackBribeSubmit(event) {
             trackMessageDiv.style.color = '';
         }, 2000);
     });
-
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('trackBribeBanner').style.display = 'none'; // Initially hide the banner
+    document.getElementById('trackBribeBanner').style.display = 'none'; 
 });
