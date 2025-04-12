@@ -3,28 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
     {% block title %}
     <title>IPaidABribe</title>
     {% endblock %}
     <link rel="stylesheet" href="/static/styles.css">
     {% block extra_css %}{% endblock %}
     {% block extra_js %} 
-    <script src="static/track_bribe.js"></script>
+    <script src="/static/track_bribe.js"></script>
     {% endblock %}
-    <script src="/static/username.js"> </script>
+    <script src="/static/account.js"> </script>
 </head>
 <body>
     <div class="header">
         {% block button %}
-        <div class="sub-header"> 
-        <a href="/report"> <button class="button-primary">Report Bribe</button></a>
-        <button onclick="showUsernameForm()" class="button-primary"> Create Account </button>
-        <button class="button-primary">Sign-in to Report Bribe</button>
-        </div>
+        <div class="sub-header">
+            {% if current_user %}
+                <!-- User is logged in -->
+                 <a href="/report"> <button class="button-primary">Report Bribe</button></a>
+                 <!-- Use a form for POST signout -->
+                 <form action="/signout" method="post" style="display: inline;">
+                    <button type="submit" class="button-primary">Sign-out</button>
+                 </form>
+            {% else %}
+                <!-- User is logged out -->
+                <button onclick="showUsernameForm()" class="button-primary"> Create Account </button>
+                <button onclick="showSigninForm('Sign-in to Report Bribe')" class="button-primary">Sign-in to Report</button>     
+            {% endif %}
+        </div>        
+        {% if current_user %}
+            {% block welcome_message %}
+            <span class="welcome-message">Welcome, 
+                <form action="/track_bribe" method="POST" style="display: inline;">
+                    <input type="hidden" name="username" value="{{ current_user.user_metadata.get('username', 'User') }}">
+                    <button type="submit" class="button-primary">{{ current_user.user_metadata.get('username', 'User') }}</button>
+                </form>!
+            </span>
+            {% endblock %}
+        {% endif %}
         {% endblock %}
         <div class="header-buttons" >
             <button class="button-primary" style="margin-left: auto;">Check Stats</button>
-            <button onclick="showTrackBribeForm()" class="button-primary">Track your Bribes</button>
+            {% if current_user %}
+            <button onclick="showTrackBribeForm()" class="button-primary"> Search </button>
+            {% else %}
+            <button onclick="showTrackBribeForm()" class="button-primary"> Search </button>
+            {% endif %}
         </div>
     </div>
 
@@ -36,17 +60,48 @@
         <p style="color: rgb(75, 84, 93); text-align: center; margin-top: 10px;">*use your account to track your bribes</p>
         <form id="usernameForm" onsubmit="handleUsernameSubmit(event)">
             <label for="newUsername">Username:</label>
-            <input type="text" id="newUsername" name="newUsername" required pattern="^[a-zA-Z0-9\S]+$">
+            <input type="text" id="newUsername" name="newUsername" required style="margin-bottom: 0;"  maxlength="20">
+
+            <div class="username-feedback" style="margin-top: 5px; font-size: 0.9em; min-height: 25px;">
+                <span id="usernameAvailabilityStatus" style="display: inline-block; margin-right: 10px; font-weight: bold;"></span>
+                <span id= "addText" style="color: inherit; margin-right: 5px; font-weight:500;">
+                    <!-- Additional text -->
+                </span>
+                <span id="usernameSuggestions">
+                    <!-- Suggestions will be populated here -->
+                </span>
+                <button type="button" id="refreshSuggestions" title="Refresh Suggestions" style="margin-left: 5px;cursor: pointer;font-size: 1.2em;padding: 0 5px;vertical-align: middle;border: none;background: none;background-color: #1d1d1d;border: 1px solid #ccc;flex-shrink: 0; width: 30px; margin-top: 0;">↻</button>
+            </div>
 
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8">
-
+            <input type="password" id="signupPassword" name="password" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8">
+            
             <label for="confirmPassword">Confirm Password:</label>
             <input type="password" id="confirmPassword" name="confirmPassword" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8">
+            <input type="checkbox" onclick="togglePasswordVisibility()"> 
 
             <button type="submit" class="button-primary" style="display: block; margin: 0 auto;" >Submit</button>
-        </form>
-        <div id="message"></div>
+            <div id="message"></div>
+        </form>  
+    </div>
+</div>
+
+   <!-- sign in Banner -->
+<div id="signinBanner" class="modal">
+    <div class="modal-content" >
+        <span class="close" onclick="hideSigninForm()">&times;</span>
+        <h2>Sign-in to Report </h2>
+        <form id="signinForm" onsubmit="handleSigninSubmitForm(event)">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required >
+
+            <label for="password">Password:</label>
+            <input type="password" id="signinPassword" name="password" required >
+            <input type="checkbox" onclick="togglePasswordVisibility()">
+
+            <button type="submit" class="button-primary" style="display: block; margin: 0 auto;" >Submit</button>
+            <div id="message"></div>
+        </form>  
     </div>
 </div>
 
@@ -54,8 +109,9 @@
     <div id="trackBribeBanner" class="modal">
         <div class="modal-content">
             <span class="close" onclick="hideTrackBribeForm()">&times;</span>
-            <h2 style="margin-bottom: 15px;">Track Your Bribe</h2>
+            <h2 style="margin-bottom: 15px;">Search Report </h2>
             <form id="trackBribeForm" onsubmit="handleTrackBribeSubmit(event)">
+                {% if current_user %}
                 <label for="trackUsername">Username:</label>
                 <input type="text" id="trackUsername" name="username">
 
@@ -63,13 +119,22 @@
     
                 <label for="reportingId">Reporting ID:</label>
                 <input type="text" id="reportingId" name="reportingId">
-    
+
+                {% else %}
+                <label for="reportingId">Reporting ID:</label>
+                <input type="text" id="reportingId" name="reportingId">
+
+                {% endif %}
                 <button type="submit" class="button-primary" style="display: block; margin: 0 auto;">Submit</button>
+                <div id="trackMessage"></div>
             </form>
-            <div id="trackMessage"></div>
         </div>
     </div>
     {% block content %}
+    <!-- Display track_error message if redirected from track_bribe -->
+    {% if error %}
+       <div class="error-message" style="color: red; text-align: center; margin-bottom: 15px;">{{ error }}</div>
+    {% endif %}
 
    <h2>*Reports are user-submitted and not verified</h2>
    <h1>Bribe Leaderboard</h1>
@@ -77,12 +142,12 @@
         <table class="leaderboard">
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th>Official Name</th>
                     <th>Department</th>
                     <th>State</th>
                     <th>City</th>
                     <th>Amount</th>
-                    <th>Action</th>
+                    <th>Details</th>
                 </tr>
             </thead>
             <tbody>
@@ -94,7 +159,18 @@
                     <td>{{ bribe.state_ut }}</td>
                     <td>{{ bribe.district }}</td>
                     <td>₹{{ bribe.bribe_amt }}</td>
-                    <td><button class="button-primary">View Details</button></td>
+                    {% if current_user %}
+                    <td>
+                        <form action="/track_bribe" method="POST" style="display: inline;">
+                            <input type="hidden" name="reportingId" value="{{ bribe.bribe_id }}">
+                            <button type="submit" class="button-primary">View Details</button>
+                        </form>
+                    </td>
+                    {% else %}
+                    <td>
+                        <button onclick="showSigninForm('Sign-in to view more details')" class="button-primary">View Details</button>
+                    </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

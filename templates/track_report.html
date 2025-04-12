@@ -11,6 +11,9 @@
 {% endblock %}
 {% block content %}
 <div class="table-container">
+    {% if error %}
+       <p style="color: red; text-align: center;">{{ error }}</p>
+    {% endif %}
     {% if bribes %}
     <table class="leaderboard">
         <thead>
@@ -54,7 +57,7 @@
             {% endfor %}
         </tbody>
     </table>
-    {% else %}
+    {% elif not error %}
     <p>No bribe reports found for the provided information.</p>
     {% endif %}
 </div>

@@ -86,22 +86,23 @@
 <div class="subheader">
     <a href="/"> <button class="button-primary"> Home </button></a> 
 </div>
-
+{% block welcome_message %}
+    <span class="welcome-message">Welcome, {{ current_user.user_metadata.get('username', 'User') }}!</span>
+{% endblock %}
+{% endblock %}
 <!-- Incorrect Username Banner -->
 <div id="banner-container">
     {% include "incorrect_username.html" %}
 <!-- Bribe Reported Banner -->
     {% include "bribe_reported.html" %}
 </div>
-{% endblock %}
+
 {% block content %}
 
 <div class="table-container">
     <h1>Report Bribe:</h1>
     <form method="POST" enctype="multipart/form-data" class="form-grid"  action="/report_bribe">
         <!-- Required Fields -->
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required>
         
         <label for="official">Official's Name: </label>
         <input type="text" id="official" name="official">

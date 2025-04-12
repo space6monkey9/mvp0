@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, Form, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi import FastAPI, Request, Form, UploadFile, Depends, HTTPException
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from .db import SQLModel, engine
@@ -11,7 +11,8 @@ import os
 from supabase import create_async_client
 from typing import List
 import datetime
-import bcrypt
+from supabase import SupabaseAuthClient
+from pydantic import BaseModel, constr
 
 async def startup_event():
     global supabase
@@ -26,8 +27,86 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 SQLModel.metadata.create_all(engine)
 
+#Dependency to get current user from Supabase session
+async def get_current_user(request: Request) -> SupabaseAuthClient | None:
+    supabase_session_data = request.session.get("supabase_session")
+    if not supabase_session_data:
+        return None
+
+    #trying to get user with existing access token
+    access_token = supabase_session_data.get("access_token")
+    refresh_token = supabase_session_data.get("refresh_token") # Get refresh token
+
+    if not access_token:
+        return None
+
+    try:
+        # Set the session for the supabase client instance for this request
+        await supabase.auth.set_session(access_token=access_token, refresh_token=refresh_token)
+        response = await supabase.auth.get_user()
+        # user is retrieved directly from the response object
+        user = response.user
+        if user:
+            print(f"User verified: {user.id}")
+
+            return user # Return the Supabase user object
+        else:
+            # If get_user returns no user despite token, try refreshing
+            print("No user found with current token, attempting refresh...")
+            if refresh_token:
+                 try:
+                     refresh_response = await supabase.auth.refresh_session(refresh_token)
+                     if refresh_response and refresh_response.session:
+                         print("Session refreshed successfully.")
+                         # Update session in Starlette middleware
+                         request.session["supabase_session"] = refresh_response.session.dict()
+                         # Return the newly verified user
+                         return refresh_response.user
+                     else:
+                         print("Refresh token failed or returned no session.")
+                         request.session.pop("supabase_session", None) # Clear invalid session
+                         await supabase.auth.sign_out() # Clear supabase client session state
+                         return None
+                 except Exception as refresh_e:
+                     print(f"Error refreshing session: {refresh_e}")
+                     request.session.pop("supabase_session", None) 
+                     await supabase.auth.sign_out() 
+                     return None
+            else:
+                print("No refresh token available to refresh session.")
+                request.session.pop("supabase_session", None) 
+                await supabase.auth.sign_out() 
+                return None
+
+    except Exception as e:
+        print(f"Error validating session: {e}")
+        
+        if refresh_token:
+             try:
+                 print("Attempting refresh due to exception...")
+                 refresh_response = await supabase.auth.refresh_session(refresh_token)
+                 if refresh_response and refresh_response.session:
+                     print("Session refreshed successfully after exception.")
+                     request.session["supabase_session"] = refresh_response.session.dict()
+                     return refresh_response.user
+                 else:
+                     print("Refresh token failed or returned no session after exception.")
+                     request.session.pop("supabase_session", None)
+                     await supabase.auth.sign_out()
+                     return None
+             except Exception as refresh_e:
+                 print(f"Error refreshing session after exception: {refresh_e}")
+                 request.session.pop("supabase_session", None)
+                 await supabase.auth.sign_out()
+                 return None
+        else:
+            print("No refresh token available, clearing session.")
+            request.session.pop("supabase_session", None)
+            await supabase.auth.sign_out()
+            return None
+
 @app.get('/')
-async def index(request:Request, page: int = 1):
+async def index(request:Request, page: int = 1, current_user: SupabaseAuthClient | None = Depends(get_current_user)):
     with Session(engine) as session:
         # Calculate the offset based on the page number.
         offset = (page - 1) * 50
@@ -37,7 +116,7 @@ async def index(request:Request, page: int = 1):
 
         # Get total number of bribes for pagination
         total_bribes = session.exec(select(func.count(Bribe.id))).one()  
-        total_pages = (total_bribes + 49) // 50  # Calculate total page
+        total_pages = (total_bribes + 49) // 50 
 
         # Calculate total pages and page range
         start_page = max(1, page - 1)
@@ -52,7 +131,8 @@ async def index(request:Request, page: int = 1):
                 "state_ut": bribe.state_ut,
                 "district": bribe.district,
                 "bribe_amt": bribe.bribe_amt,
-                "doi": str(bribe.doi) if bribe.doi else "No Date", # Handle potential None
+                "doi": str(bribe.doi) if bribe.doi else "No Date", 
+                "bribe_id": bribe.bribe_id,
             })
 
         return templates.TemplateResponse("base.html", {
@@ -60,46 +140,28 @@ async def index(request:Request, page: int = 1):
             "bribes": bribe_data,
             "page": page,
             "total_pages": total_pages,
-            "page_numbers": page_numbers
+            "page_numbers": page_numbers,
+            "current_user": current_user
         })
 
 @app.get('/report')
-async def report(request:Request):
+async def report(request:Request, current_user: SupabaseAuthClient | None = Depends(get_current_user)):
+
+    if not current_user:
+        
+        return RedirectResponse(url="/", status_code=303)
+
     current_date = datetime.date.today()
     formatted_date = current_date.strftime('%Y-%m-%d') 
-     
-    return templates.TemplateResponse("report.html", {"request": request, "current_date": formatted_date})
 
-@app.post('/create_username')
-async def create_username(username_data: dict):
-    with Session(engine) as session:
-        # Check if username already exists
-        existing_user = session.exec(
-            select(User).where(User.username == username_data['username'])
-        ).first()
-
-        print(f"Existing user: {existing_user}")
-        
-        if existing_user:
-            print("WTF!!!")
-            return JSONResponse({"error": "Username already exists"}, status_code=409) # Return 409(conflict) status code
-        
-        password = username_data['password']
-
-        # Generate salt with cost factor 12 and hash the password
-        salt = bcrypt.gensalt(rounds=12)
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
-
-        print(f"username: {username_data['username']} password: {hashed_password}")
-            
-        user = User(username=username_data['username'], password=hashed_password)
-        session.add(user)
-        session.commit()
-        return JSONResponse({"message": "Username created successfully"}, status_code=200)
+    return templates.TemplateResponse("report.html", {
+        "request": request,
+        "current_date": formatted_date,
+        "current_user": current_user
+    })
 
 @app.post('/report_bribe')
 async def report_bribe(request: Request,
-                        username: str = Form(...),
                         official: str = Form(None),
                         department: str = Form(...),
                         amount: int = Form(...),
@@ -108,12 +170,17 @@ async def report_bribe(request: Request,
                         district: str = Form(...),
                         description: str = Form(...),
                         date: str = Form(None),
-                        evidence_files: List[UploadFile] = Form([])
+                        evidence_files: List[UploadFile] = Form([]),
+                        current_user: SupabaseAuthClient | None = Depends(get_current_user)
                         ):
+    if not current_user:
+        
+        return RedirectResponse(url="/", status_code=303)
+
+    username = current_user.user_metadata.get("username")
+    
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == username)).first()
-        if not user:
-            return templates.TemplateResponse("incorrect_username.html", {"request": request})
 
         if official is None:
             official = "*UNKNOWN"
@@ -124,10 +191,37 @@ async def report_bribe(request: Request,
                 parsed_date = datetime.datetime.strptime(date, '%Y-%m-%d').date() # Parse date string to datetime.date
             except ValueError:
                 return JSONResponse({"error": "Invalid date format"}, status_code=422) # Return error if date format is invalid
+            
+        # generate bribe_id
+        import uuid
+        uuid_str = str(uuid.uuid4())
+        numeric_uuid_chars = ''.join(filter(str.isdigit, uuid_str))
+        import random
+        if len(numeric_uuid_chars) >= 6:
+            first_six_digits = ''.join(random.sample(numeric_uuid_chars, 6))
+        else:
+            first_six_digits = numeric_uuid_chars.zfill(6)
 
-        # Create Bribe object WITHOUT evidence URLs initially
+        bribe_id_candidate = f"{username[:2]}{username[-2:]}{first_six_digits}"
+        print(f"Generated Candidate BRIBE ID: {bribe_id_candidate}")
+
+        # Collision check for the user-facing bribe_id
+        while True:
+            existing_bribe = session.exec(select(Bribe).where(Bribe.bribe_id == bribe_id_candidate)).first()
+            if not existing_bribe:
+                break
+            else:
+                    # regenerate
+                print(f"Collision detected for BRIBE ID: {bribe_id_candidate}. Regenerating...")
+                    # Regenerate using a different sample
+                if len(numeric_uuid_chars) >= 6:
+                    first_six_digits = ''.join(random.sample(numeric_uuid_chars, 6))
+                else:
+                    first_six_digits = numeric_uuid_chars.zfill(6)
+                bribe_id_candidate = f"{username[:2]}{username[-2:]}{first_six_digits}"
+                print(f"Regenerated Candidate BRIBE ID: {bribe_id_candidate}")
+
         bribe = Bribe(
-            user=user,
             ofcl_name=official,
             dept=department,
             bribe_amt=amount,
@@ -137,32 +231,28 @@ async def report_bribe(request: Request,
             descr=description,
             doi=parsed_date,
             # evidence_urls will be added after upload
-            user_id = user.id
+            bribe_id=bribe_id_candidate, 
+            id=user.id 
         )
 
-        # Add bribe to session to get its ID without commiting
+        # Add bribe to the session 
         session.add(bribe)
-        session.flush() # Make the bribe object available in the session to get ID
-        session.refresh(bribe) # Load the generated bribe.id (UUID)
 
-        # --- Process and Upload Evidence Files to Supabase ---
         evidence_public_urls = []
         upload_successful = True # Flag to track upload status
 
-        # 3. Use a try...except block for the entire upload process
         try:
             if evidence_files:
                 print("Files received, starting upload process...")
                 for evidence_file in evidence_files:
-                    if evidence_file and evidence_file.filename and evidence_file.size > 0:
-                        # Read file content
+                     if evidence_file and evidence_file.filename and await evidence_file.read(): # Check if file has content
+                        await evidence_file.seek(0) # Reset pointer after read check
                         contents = await evidence_file.read()
-                        await evidence_file.seek(0)
+                        await evidence_file.seek(0) # Reset again for upload
 
                         original_filename = evidence_file.filename
                         content_type = evidence_file.content_type
 
-                        # Determine Supabase bucket
                         if content_type and content_type.startswith("image/"):
                             bucket_name = "images"
                         elif content_type == "application/pdf":
@@ -171,124 +261,123 @@ async def report_bribe(request: Request,
                             print(f"Skipping unsupported file type: {content_type} for file {original_filename}")
                             continue
 
-                        # Construct Supabase storage path using the generated bribe.id
-                        storage_path = f"{username}/{bribe.id}/{original_filename}"
+                        # Use authenticated username from session and bribe_id
+                        username=current_user.user_metadata.get("username")
+                        storage_path = f"{username}/{bribe_id_candidate}/{original_filename}"
                         print(f"Uploading to bucket: {bucket_name}, path: {storage_path}")
 
-                        # Upload to Supabase Storage
+                        # Set session for storage interaction 
+                        await supabase.auth.set_session(access_token=request.session.get("supabase_session", {}).get("access_token"),
+                                                         refresh_token=request.session.get("supabase_session", {}).get("refresh_token"))
+
                         response = await supabase.storage.from_(bucket_name).upload(
                             path=storage_path,
                             file=contents,
                             file_options={"content-type": evidence_file.content_type, "cache-control": "3600", "upsert": "false"}
                         )
-                        print(f"Supabase Upload Response Status: {response}")
+                        print(f"Supabase Upload Response Status: {response}") 
 
-                        # Get public URL
-                        url_response =await supabase.storage.from_(bucket_name).get_public_url(storage_path)
-                        print(f"Supabase Public URL Response: {url_response}")
-
-                        if isinstance(url_response, str):
+                        if response:
+                            # Get public URL
+                            url_response = await supabase.storage.from_(bucket_name).get_public_url(storage_path) 
+                            print(f"Supabase Public URL: {url_response}")
                             evidence_public_urls.append(url_response)
                         else:
-                            print(f"Warning: Could not get public URL for {storage_path}")
-                            upload_successful = False
-                            break # Stop processing further files
+                             print(f"Error uploading file {original_filename}. Status: {response}, Message: {await response.json()}") 
+                             upload_successful = False
+                             # Attempt cleanup 
+                             try:
+                                 await supabase.storage.from_(bucket_name).remove([storage_path])
+                                 print(f"Attempted cleanup of failed upload: {storage_path}")
+                             except Exception as delete_e:
+                                 print(f"Error during cleanup of failed upload {storage_path}: {delete_e}")
+                             break # Stop processing further files
 
         except Exception as e:
-            # Catch any unexpected errors during file processing/upload
             print(f"An unexpected error occurred during file upload: {e}")
             upload_successful = False
 
-        # --- Finalize based on upload success ---
         if upload_successful:
-            #  If ALL uploads succeeded, generate bribe_id and COMMIT
-            print("All uploads successful. Generating bribe_id and committing.")
-            # Generate User-Facing Bribe ID (using existing logic)
-            uuid_str = str(bribe.id)
-            numeric_uuid_chars = ''.join(filter(str.isdigit, uuid_str))
-            import random
-            if len(numeric_uuid_chars) >= 6:
-                first_six_digits = ''.join(random.sample(numeric_uuid_chars, 6))
-            else:
-                first_six_digits = numeric_uuid_chars.zfill(6)
-
-            bribe_id = f"{username[:2]}{username[-2:]}{first_six_digits}"
-            print(f"Generated BRIBE ID: {bribe_id}")
-
-            # Collision check (using existing logic)
-            while True:
-                existing_bribe = session.exec(select(Bribe).where(Bribe.bribe_id == bribe_id, Bribe.user_id == user.id)).first()
-                if not existing_bribe or existing_bribe.id == bribe.id:
-                    break
-                else:
-                    first_six_digits = ''.join(random.sample(numeric_uuid_chars, 6))
-                    bribe_id = f"{username[:2]}{username[-2:]}{first_six_digits}"
-                    print(f"Regenerated BRIBE ID: {bribe_id}")
-
+            print("All uploads successful or no files to upload.")
+            
             # Update the bribe object with the generated bribe_id and evidence URLs
-            bribe.bribe_id = bribe_id
+            bribe.bribe_id = bribe_id_candidate
             bribe.evidence_urls = evidence_public_urls
             print(f"FINAL BRIBE before commit: {bribe}")
 
-            # Commit the transaction ONLY IF uploads were successful
             session.commit()
             print("Bribe report committed successfully.")
 
-            return templates.TemplateResponse("bribe_reported.html", {"request": request, "bribe_id": bribe_id})
+            # Pass current_user to the template context
+            return templates.TemplateResponse("bribe_reported.html", {
+                "request": request,
+                "bribe_id": bribe.bribe_id,
+                "current_user": current_user
+            })
         else:
             # If any upload failed, ROLLBACK the transaction
             print("Upload failed. Rolling back database changes.")
-            session.rollback() # Discard the bribe added earlier
+            session.rollback()
 
+            # Re-render report form with error, also needs current_user
+            current_date = datetime.date.today()
+            formatted_date = current_date.strftime('%Y-%m-%d')
             return templates.TemplateResponse("report.html", {
                 "request": request,
-                "error": "Failed to upload evidence files. Please try submitting the report again."
-            }, status_code=500) 
+                "error": "Failed to upload evidence files. Please try submitting the report again.",
+                "current_date": formatted_date,
+                "current_user": current_user,
+            }, status_code=500)
 
 @app.post('/track_bribe')
-async def track_bribe(request: Request, username: str = Form(None), reportingId: str = Form(None)):
+async def track_bribe(request: Request, username: str = Form(None), reportingId: str = Form(None), current_user: SupabaseAuthClient | None = Depends(get_current_user)):
     with Session(engine) as session:
         
+        clean_username = username.strip() if username else None
+        clean_reporting_id = reportingId.strip() if reportingId else None
         print(f"Username is: {username}")
         print(f"reorting id is: {reportingId}")
         bribes = []
-        if username and reportingId: # Both username and reportingId are provided
+        if clean_username and clean_reporting_id: # Both username and reportingId are provided
             print("YES3: Both username and reportingId")
-            bribe_by_id = session.exec(select(Bribe).where(Bribe.bribe_id == reportingId)).first()
+            # Get the specific bribe by ID for this user
+            bribe_by_id = session.exec(select(Bribe).where(Bribe.bribe_id == clean_reporting_id, Bribe.user.has(username=clean_username))).first()
+            print(f"bribe_by_id: {bribe_by_id}")
+            
             if bribe_by_id:
-                bribes.append(bribe_by_id) # Add the specific bribe first
-            user = session.exec(select(User).where(User.username == username)).first()
-            if user:
-                user_bribes = session.exec(select(Bribe).where(Bribe.user_id == user.id)).all()
-                if user_bribes:
-                    for bribe in user_bribes:
-                        if bribe not in bribes: # Avoid duplicates if bribe_by_id is also in user_bribes
-                            bribes.append(bribe)
+                # Get all other bribes for this user, excluding the one we already found, ordered by date descending
+                other_bribes = session.exec(
+                    select(Bribe)
+                    .where(Bribe.user.has(username=clean_username), Bribe.bribe_id != clean_reporting_id)
+                    .order_by(Bribe.bribe_amt.desc())
+                ).all()
+                
+                # Add the specific bribe first, then the rest
+                bribes.append(bribe_by_id)
+                bribes.extend(other_bribes)
 
-        elif username: # Only username is provided
+        elif clean_username:
             print("YES1: Only username")
-            user = session.exec(select(User).where(User.username == username)).first()
-            if user:
-                user_bribes = session.exec(select(Bribe).where(Bribe.user_id == user.id)).all()
-                if user_bribes:
-                    bribes.extend(user_bribes)
-                    
-        elif reportingId: # Only reportingId is provided
+            user_bribes = session.exec(select(Bribe).where(Bribe.user.has(username=username))).all()
+            print(f"user_bribes: {user_bribes}")
+            if user_bribes:
+                bribes.extend(user_bribes)
+
+        elif clean_reporting_id:
             print("YES2: Only reportingId")
-            bribe_by_id = session.exec(select(Bribe).where(Bribe.bribe_id == reportingId)).first()
+            bribe_by_id = session.exec(select(Bribe).where(Bribe.bribe_id == clean_reporting_id)).first()
+            print(f"bribe_by_id: {bribe_by_id}")
             if bribe_by_id:
                 bribes.append(bribe_by_id)
 
         if not bribes:
-            print("Nothing")
-            # Return JSON error or render a template indicating no reports found
-            return JSONResponse( {"error": "No reports found for the provided information."})
-
+            print("Nothing found")
+            
+            return JSONResponse({"error": "No reports found for the provided information."}, status_code=404)
         
         bribe_data = []
         
-        for bribe in bribes:
-            
+        for bribe in bribes:  
             bribe_data.append({
                 "id": str(bribe.id),
                 "username": bribe.user.username,
@@ -299,25 +388,138 @@ async def track_bribe(request: Request, username: str = Form(None), reportingId:
                 "district": bribe.district,
                 "description": bribe.descr,
                 "date": str(bribe.doi) if bribe.doi else None,
-                "has_evidence": bool(bribe.evidence_urls), # Check if the list is not empty
-                "evidence_urls": bribe.evidence_urls, # Pass the list of URLs
+                "evidence_urls": bribe.evidence_urls, 
                 "bribe_id": bribe.bribe_id,
             })
-            
-         # Store bribe data in session 
-        request.session['bribe_data'] = bribe_data
-        
-        # Redirect to the track report page
-        return RedirectResponse(url="/track_report", status_code=303)
 
-@app.get('/track_report')
-async def track_report(request: Request):
-    print("CHECK 5")
-    bribe_data = request.session.get('bribe_data', [])
-    error_message = request.session.pop('error', None) # Get potential error from session
-    context = {"request": request, "bribes": bribe_data}
-    if error_message:
-        context["error"] = error_message
-    return templates.TemplateResponse("track_report.html", context)
+        print(f"bribe_data: {bribe_data}")
+        context = {"request": request, "bribes": bribe_data, "current_user": current_user} 
+
+        return templates.TemplateResponse("track_report.html", context)
+
+# Pydantic model for request body validation
+class UsernameCheckRequest(BaseModel):
+    username: constr(min_length=3,max_length=20, regex=r'^[a-zA-Z0-9]+$') # type: ignore
+
+@app.post('/check_username')
+async def check_username_availability(request: Request, username_data: UsernameCheckRequest):
+   
+    username_to_check = username_data.username.lower()
+    print(f"Checking availability for username: {username_to_check}")
+
+    try:
+        username_check = await supabase.rpc("check_username_exist", {"username_text": username_to_check}).execute()
+
+        print(f"Supabase RPC check_username_exist response: {username_check.data}")
+
+        # The RPC returns true if username exists, so availability is the opposite
+        is_available = not username_check.data
+
+        return JSONResponse({"available": is_available}, status_code=200)
+
+    except Exception as e:
+        print(f"Error checking username availability: {e}")
+       
+        return JSONResponse({"error": "Failed to check username availability", "details": str(e)}, status_code=500)
+
+@app.post('/signup')
+async def signup(request: Request, username_data:dict):
+
+    # Check if username already exists
+    username=username_data['username'].lower()
+    username_check = await supabase.rpc("check_username_exist",{"username_text":username}).execute()
+    print(username_check.data)
+        
+    if username_check.data:
+        print(f"existing user")
+        return JSONResponse({"error": "Username already exists"}, status_code=409) # Return 409 conflict status code
+        
+    if not username_check.data:
+        print(f"new user")
+
+        password = username_data['password']
+        email=f"{username}@{username}.com"
+
+        print(f"email: {email} passowrd: {password}")
+
+        try:
+            response1= await supabase.auth.sign_up(
+              {
+                "email": email,
+                "password": password,
+                "options": {"data":{"username": username}}
+              }
+            ) 
+            print(f"response1: {response1}")
+            response2= await supabase.table("user").insert({"username": username, "id": response1.user.id}).execute()
+            print(f"response1: {response2}")
+            return JSONResponse({"message": "Account created successfully"}, status_code=200)
+
+        except Exception as e:
+            print(f"error while sign-up: {e}")
+            return JSONResponse({"error": e})
+        
+@app.post('/signin')
+async def signin(request: Request, username_data:dict):
+    
+    try:
+        response= await supabase.auth.sign_in_with_password(
+            {
+                "email": f"{username_data['username']}@{username_data['username']}.com",
+                "password": username_data['password']
+            }
+        )
+        print(f"Supabase signin response user: {response.user}")
+        print(f"Supabase signin response session: {response.session}")
+
+        if response.user and response.session:
+            # Store session in Starlette session
+            request.session["supabase_session"] = {
+                "access_token": response.session.access_token,
+                "refresh_token": response.session.refresh_token,
+                "username": response.user.user_metadata["username"]
+            }
+            print("Supabase session stored in Starlette session.")
+        
+            return JSONResponse({"message": "Login successful", "redirect_url": "/"}) # Send redirect URL in JSON
+        else:
+             # Handle cases like incorrect password, user not found
+             print("Signin failed: No user / invalid credentials")
+             # Supabase might raise an exception for specific errors, handled below
+             return JSONResponse({"error": "Invalid credentials or user not found."}, status_code=401)
+
+    except Exception as e:
+
+        # Clear any potentially partially set session data on failure
+        request.session.pop("supabase_session", None)
+        try:
+            await supabase.auth.sign_out() # Ensure Supabase client state is cleared
+        except:
+            pass # Ignore errors during cleanup signout
+
+        return JSONResponse({"error": str(e)}, status_code=401)
+
+
+@app.post('/signout')
+async def signout(request: Request):
+    # Clear the Starlette session
+    supabase_session = request.session.pop("supabase_session", None)
+    print(f"Cleared Starlette session: {supabase_session is None}")
+
+    try:
+        #  invalidate the supabase tokens
+        response = await supabase.auth.sign_out()
+        print(f"Supabase signout response: {response}") # Should be None on success
+        
+        return RedirectResponse(url="/", status_code=303)
+
+    except Exception as e:
+        print(f"Error during Supabase sign-out: {e}")
+
+        return RedirectResponse(url="/", status_code=303)
+
+
+
+
 
 

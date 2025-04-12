@@ -1,5 +1,9 @@
-function showTrackBribeForm() {
+function showTrackBribeForm() { 
     document.getElementById('trackBribeBanner').style.display = 'block';
+    const form = document.getElementById('trackBribeForm');
+    form.reset();
+    const trackMessageDiv = document.getElementById('trackMessage');
+    trackMessageDiv.innerHTML = ''; 
 }
 
 function hideTrackBribeForm() {
@@ -13,8 +17,8 @@ function handleTrackBribeSubmit(event) {
     const formData = new FormData(form);
     
     const trackMessageDiv = document.getElementById('trackMessage');
-    trackMessageDiv.innerHTML = ''; // Clear previous messages
-    trackMessageDiv.style.color = ''; // Reset text color
+    trackMessageDiv.innerHTML = ''; 
+    trackMessageDiv.style.color = ''; 
 
     const trackBribeForm = document.getElementById('trackBribeForm');
 
@@ -30,6 +34,10 @@ function handleTrackBribeSubmit(event) {
     if (isEmpty) {
         trackMessageDiv.innerHTML = '<p style="color: red; text-align:center">Please fill in the form before submitting.</p>';
         trackMessageDiv.style.color = 'red';
+        setTimeout(() => {
+            trackMessageDiv.innerHTML = '';
+            trackMessageDiv.style.color = '';
+        }, 1500);
         return; // Stop form submission
     }
 
@@ -37,32 +45,38 @@ function handleTrackBribeSubmit(event) {
         method: 'POST',
         body: formData,
     })
-        .then(response => {
-            if (response.redirected) {
-                window.location.href = response.url; // Redirect to track_report page
-            } else {
-                // Handle error responses (non-redirect and not ok)
-                return response.json().catch(() => response.text()); // Try to parse JSON, if not, get text
-            }
-        })
-        .then(data => {
-            // 'data' will be HTML text on success, or JSON/text error message
-            if (typeof data === 'string') {
-                // It's HTML or a text error message
-                trackMessageDiv.innerHTML = data; // Display HTML or text error
-                trackMessageDiv.style.color = data.includes('error') ? 'red' : ''; // Color red if it seems like an error message
-            } else if (typeof data === 'object' && data.error) { // Changed 'else' to 'else if' to correctly handle the condition
-                // It's a JSON error response
-                trackMessageDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`; // Display JSON error message in red
-            }
+    .then(response => {
+        // Check if the request was successful 
+        if (response.ok) {
+            return response.text(); // Get HTML content if successful
+        } else{
+            return response.text().then(text => {
+                //throw an error from JSON
+                const errorData = JSON.parse(text);
+                throw new Error(errorData.error || `Server error: ${response.status}`);
+            })
+        }
+    })
+    .then(html => {
+        //  Replace the entire page content with the received HTML
+        document.body.innerHTML = html;
+    })
+    
+    .catch(error => {
+        //  catches network errors 
+        console.error('Error tracking bribe:', error);
+        // Display the error message within the existing form structure
+        trackMessageDiv.innerHTML = `<p style="color: red; text-align:center;">Error: ${error.message}</p>`;
+        trackMessageDiv.style.color = 'red';
+        if (trackBribeForm) { // Check if form still exists
             trackBribeForm.reset();
-        })
-        .catch(error => {
-            console.error('Network error:', error);
-            trackMessageDiv.innerHTML = '<p style="color: red;">Network error. Please try again.</p>';
-            trackMessageDiv.style.color = 'red'; // Indicate network error
-            trackBribeForm.reset();
-        });
+        }
+        setTimeout(() => {
+            trackMessageDiv.innerHTML = '';
+            trackMessageDiv.style.color = '';
+        }, 2000);
+    });
+
 }
 
 document.addEventListener('DOMContentLoaded', () => {
