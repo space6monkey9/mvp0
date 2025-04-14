@@ -2,9 +2,9 @@ from fastapi import FastAPI, Request, Form, UploadFile, Depends, HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from db import SQLModel, engine
+from db import  engine
 from models import User, Bribe
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select, func, SQLModel
 import datetime
 from starlette.middleware.sessions import SessionMiddleware
 import os
