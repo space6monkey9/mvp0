@@ -24,9 +24,11 @@ logging.basicConfig(
 # get logger instance
 logger = logging.getLogger(__name__)
 
+logger.info("--- main.py loaded, imports successful ---")
 
 async def startup_event():
     global supabase
+    logger.info("Executing startup_event...")
     url: str = os.environ.get("supabase_url")
     key: str = os.environ.get("supabase_key")
 
@@ -58,8 +60,17 @@ async def startup_event():
         logger.error("Cannot create Supabase client due to missing URL or key.")
 
 
+logger.info("--- About to initialize FastAPI app ---")
 app = FastAPI()
+logger.info("--- FastAPI app initialized ---")
+logger.info("--- About to add startup event handler ---")
 app.add_event_handler("startup", startup_event)  # register the startup event handler
+logger.info("--- Startup event handler added ---")
+secret_key_value = os.environ.get("secret_key")
+if not secret_key_value:
+    logger.error("CRITICAL: secret_key environment variable is missing or empty!")
+else:
+    logger.info("Found secret_key environment variable.")
 app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
