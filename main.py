@@ -18,9 +18,7 @@ import logging
 #configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-    filename='log0.txt',
-    filemode='a' 
+    format='%(asctime)s - %(levelname)s - %(message)s', 
 )
 
 # get logger instance
