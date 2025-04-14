@@ -1,4 +1,3 @@
-from . import models
 from sqlmodel import create_engine
 import os
 
