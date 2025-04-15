@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, UploadFile, Depends, HTTPException
+from fastapi import FastAPI, Request, Form, UploadFile, Depends
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -14,6 +14,7 @@ import datetime
 from supabase import SupabaseAuthClient
 from pydantic import BaseModel, constr
 import logging
+from contextlib import asynccontextmanager
 
 # configure logging
 logging.basicConfig(
@@ -59,23 +60,31 @@ async def startup_event():
     else:
         logger.error("Cannot create Supabase client due to missing URL or key.")
 
+logger.info("--- About to add startup event handler ---")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    startup_event()
+    SQLModel.metadata.create_all(engine)
+    logger.info("Startup_event executed successfully...")
+    yield
+    
+logger.info("--- Startup event handler added ---")
 
 logger.info("--- About to initialize FastAPI app ---")
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 logger.info("--- FastAPI app initialized ---")
-logger.info("--- About to add startup event handler ---")
-app.add_event_handler("startup", startup_event)  # register the startup event handler
-logger.info("--- Startup event handler added ---")
+
 secret_key_value = os.environ.get("secret_key")
 if not secret_key_value:
     logger.error("CRITICAL: secret_key environment variable is missing or empty!")
 else:
     logger.info("Found secret_key environment variable.")
 app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-SQLModel.metadata.create_all(engine)
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
 
 # Dependency to get current user from Supabase session
 async def get_current_user(request: Request) -> SupabaseAuthClient | None:
