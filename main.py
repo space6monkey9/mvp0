@@ -199,7 +199,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
-SQLModel.metadata.createAll(engine)
+SQLModel.metadata.create_all(engine)
 
 @app.get("/")
 async def index(
