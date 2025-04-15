@@ -8,17 +8,7 @@
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "main.py",
-        "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=1, stale-while-revalidate=59"
-        },
-        {
-          "key":"Vercel-CDN-Cache-Control",
-          "value": "max-age=3600"
-        }
-      ]
+        "dest": "main.py"
       }
     ]
   }
