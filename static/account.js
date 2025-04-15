@@ -151,18 +151,27 @@ async function handleUsernameSubmit(event) {
         if (response.ok) { 
             messageDiv.innerHTML = 'Account created successfully!';
             messageDiv.style.color = 'green';
-            setTimeout(() => {
-                hideUsernameForm();
-                // Redirect to authenticated homepage after 1.5s
-                window.location.href = "/";
-            }, 1500);
+            setTimeout(async () => {
+                const loginResponse = await fetch('/signin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: form.elements['newUsername'].value,
+                        password: form.elements['password'].value
+                    })
+                });
+                if (loginResponse.ok) {
+                    window.location.href = "/";
+                } else {
+                    window.location.href = "/";
+                }
+            }, 1500); 
         } else {
-            messageDiv.innerHTML = result.error || 'Error creating username';
+            messageDiv.innerHTML = result.error || 'Error creating Account';
             messageDiv.style.color = 'red';
             setTimeout(() => {
                 messageDiv.innerHTML = '';
                 messageDiv.style.color = '';
-                // Redirect to unauthenticated homepage after 1.5s
                 window.location.href = "/";
             }, 1500);
         }

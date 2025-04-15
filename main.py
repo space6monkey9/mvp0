@@ -475,14 +475,7 @@ async def report_bribe(
                 f"Bribe report {bribe.bribe_id} committed successfully by user '{username}'."
             )
 
-            # Pass current_user to the template context
-            return templates.TemplateResponse(
-                "bribe_reported.html",
-                {
-                    "request": request,
-                    "bribe_id": bribe.bribe_id,
-                }
-            )
+            return JSONResponse({"bribe_id": bribe.bribe_id}, status_code=200)
         else:
             # If any upload failed, ROLLBACK the transaction
             logger.error(

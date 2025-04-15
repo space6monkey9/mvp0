@@ -6,7 +6,11 @@
 
 {% block extra_js %}
 <script>
-    
+
+    document.addEventListener('DOMContentLoaded', () => { 
+        document.getElementById('bribeReportedBanner').style.display = 'none'; 
+    });
+
     function showBribeReportedBanner(bribeId) {
         document.getElementById('reportingId').textContent = bribeId;
         document.getElementById('bribeReportedBanner').style.display = 'block';
@@ -15,10 +19,6 @@
     function hideBribeReportedBanner() {
         document.getElementById('bribeReportedBanner').style.display = 'none';
     }
-
-    document.addEventListener('DOMContentLoaded', () => { 
-        document.getElementById('bribeReportedBanner').style.display = 'none'; 
-    });
 
     async function submitReport(event) {
         event.preventDefault(); 
@@ -33,20 +33,9 @@
             });
 
             if (response.ok) {
-                const html = await response.text();
-                if (html.includes('bribeReportedBanner')) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = html;
-                    const bannerContent = tempDiv.querySelector('#bribeReportedBanner');
-                    const bribeIdElement = bannerContent.querySelector('#reportingId');
-                    const bribeId = bribeIdElement.textContent;
-                    showBribeReportedBanner(bribeId);
-                    form.reset();
-                } else if (html.includes('incorrectUsernameBanner')) {
-                    showIncorrectUsernameBanner();
-                }
-            } else if (response.status === 404) {
-                showIncorrectUsernameBanner();
+                const data = await response.json();
+                showBribeReportedBanner(data.bribe_id);
+                form.reset();
             } else {
                 alert('Error reporting bribe. Please try again.');
             }
@@ -85,14 +74,7 @@
 
 {% block content %}
 <div id="banner-container">
-
-<div id="banner-container">
-    {% if bribe_id %}
-        {% include "bribe_reported.html" %}
-    {% endif %}
-</div>
     
-<!-- Bribe Reported Banner -->
 </div>
 <div class="table-container">
     <h1>Report Bribe:</h1>
@@ -133,5 +115,15 @@
 
         <button type="submit" class="button-primary">Submit Report</button>
     </form>
+</div>
+
+<!-- Bribe Reported Banner -->
+<div id="bribeReportedBanner" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="hideBribeReportedBanner()">&times;</span>
+        <h2 style="color: green; margin-bottom: 15px;">Bribe Reported Successfully!</h2>
+        <p style="text-align: center;">Your Reporting ID is:  <span id="reportingId"></span></p>
+        <p>Use this Reporting ID or your username to track bribes later </p>
+    </div>
 </div>
 {% endblock %}
