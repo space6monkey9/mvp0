@@ -20,30 +20,6 @@
         document.getElementById('bribeReportedBanner').style.display = 'none';
     }
 
-    async function submitReport(event) {
-        event.preventDefault(); 
-
-        const form = event.target;
-        const formData = new FormData(form);
-
-        try {
-            const response = await fetch('/report_bribe', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                showBribeReportedBanner(data.bribe_id);
-                form.reset();
-            } else {
-                alert('Error reporting bribe. Please try again.');
-            }
-        } catch (error) {
-            console.error('Network error:', error);
-        alert('Network error. Please try again.');
-        }
-    }
     document.addEventListener('DOMContentLoaded', () => {
         const reportForm = document.querySelector('.form-grid');
         reportForm.addEventListener('submit', submitReport);
@@ -78,7 +54,7 @@
 </div>
 <div class="table-container">
     <h1>Report Bribe:</h1>
-    <form method="POST" enctype="multipart/form-data" class="form-grid"  action="/report_bribe">
+    <form method="POST" enctype="multipart/form-data" class="form-grid" action="/report_bribe" id="reportBribeForm">
         <!-- Required Fields -->
         
         <label for="official">Official's Name: </label>
@@ -108,13 +84,45 @@
 
         <!-- Optional Fields -->
         <label for="date">Date of Incident:</label>
-        <input type="date" id="date" name="date" max= "{{current_date}}"  value="">
+        <input type="date" id="date" name="date" max="{{current_date}}" value="">
          
         <label for="evidence">Evidence Upload:</label>
         <input type="file" id="evidence" name="evidence_files" accept=".pdf,.jpg,.png" multiple>
 
         <button type="submit" class="button-primary">Submit Report</button>
     </form>
+</div>
+<script>
+    // Submit the form via AJAX using submitReport(event)
+    function submitReport(event) {
+        event.preventDefault();
+        const form = document.getElementById('reportBribeForm');
+        const formData = new FormData(form);
+
+        fetch('/report_bribe', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(async response => {
+            if (response.ok) {
+                const data = await response.json();
+                showBribeReportedBanner(data.bribe_id);
+                form.reset();
+            } else {
+                alert('Error reporting bribe. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Network error:', error);
+            alert('Network error. Please try again.');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const reportForm = document.getElementById('reportBribeForm');
+        reportForm.addEventListener('submit', submitReport);
+    });
+</script>
 </div>
 
 <!-- Bribe Reported Banner -->
