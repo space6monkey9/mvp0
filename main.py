@@ -8,7 +8,7 @@ from sqlmodel import Session, select, func, SQLModel
 import datetime
 from starlette.middleware.sessions import SessionMiddleware
 import os
-from supabase import create_async_client
+from supabase import create_client, create_async_client
 from typing import List
 import datetime
 from supabase import SupabaseAuthClient
@@ -27,52 +27,15 @@ logger = logging.getLogger(__name__)
 
 logger.info("--- main.py loaded, imports successful ---")
 
-async def startup_event():
-    global supabase
-    logger.info("Executing startup_event...")
-    url: str = os.environ.get("supabase_url")
-    key: str = os.environ.get("supabase_key")
+supabase_url: str | None = os.environ.get("supabase_url")
+supabase_key: str | None = os.environ.get("supabase_key")
 
-    if not url:
-        logger.error("supabase_url environment variable not found!")
-    
-    else:
-        logger.info(
-            f"Found supabase_url: {url[:10]}..."
-        )  
-
-    if not key:
-        logger.error("supabase_key environment variable not found!")
-    
-    else:
-        logger.info("Found supabase_key ")  
-
-    if url and key:
-        try:
-            logger.info("Attempting to create Supabase async client...")
-            supabase = await create_async_client(url, key)
-            logger.info("Supabase async client created successfully.")
-        except Exception as e:
-            logger.error(
-                f"Failed to create Supabase client during startup: {e}", exc_info=True
-            )
-            
-    else:
-        logger.error("Cannot create Supabase client due to missing URL or key.")
-
-logger.info("--- About to add startup event handler ---")
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-
-    startup_event()
-    SQLModel.metadata.create_all(engine)
-    logger.info("Startup_event executed successfully...")
-    yield
-    
-logger.info("--- Startup event handler added ---")
+logger.info("Attempting to create Supabase sync client...")
+supabase = create_client(supabase_url, supabase_key)
+logger.info("Supabase sync client created successfully.")
 
 logger.info("--- About to initialize FastAPI app ---")
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 logger.info("--- FastAPI app initialized ---")
 
 secret_key_value = os.environ.get("secret_key")
