@@ -5,11 +5,11 @@
         "use": "@vercel/python"
       }
     ],
-   
-    "headers": [
-    {
-      "source": "/main.py",
-      "headers": [
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "main.py",
+        "headers": [
         {
           "key": "Cache-Control",
           "value": "s-maxage=1, stale-while-revalidate=59"
@@ -19,6 +19,6 @@
           "value": "max-age=3600"
         }
       ]
-    }
-  ]
+      }
+    ]
   }
