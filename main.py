@@ -247,7 +247,6 @@ async def report(
         },
     )
 
-
 @app.post("/report_bribe")
 async def report_bribe(
     request: Request,
