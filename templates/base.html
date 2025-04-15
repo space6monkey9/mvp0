@@ -96,6 +96,8 @@
             <input type="password" id="signinPassword" name="password" required >
             <input type="checkbox" onclick="togglePasswordVisibility()">
 
+            <input type="hidden" id="signinReportingId" name="reportingId">
+
             <button type="submit" class="button-primary" style="display: block; margin: 0 auto;" >Submit</button>
             <div id="message"></div>
         </form>  
@@ -165,7 +167,7 @@
                     </td>
                     {% else %}
                     <td>
-                        <button onclick="showSigninForm('Sign-in to view more details')" class="button-primary">View Details</button>
+                        <button onclick="showSigninForm('Sign-in to view more details', '{{ bribe.bribe_id }}')" class="button-primary">View Details</button>
                     </td>
                     {% endif %}
                 </tr>

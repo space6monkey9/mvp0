@@ -233,12 +233,10 @@ async def report(
     request: Request,
     current_user: SupabaseAuthClient | None = Depends(get_current_user),
 ):
-    if not current_user:
-        logger.warning("Unauthorized access attempt to /report page.")
-        return RedirectResponse(url="/", status_code=303)
-
+    logger.info("Report check 1: ")
     current_date = datetime.date.today()
     formatted_date = current_date.strftime("%Y-%m-%d")
+    logger.info("Report check 2: ")
 
     return templates.TemplateResponse(
         "report.html",
@@ -574,10 +572,13 @@ async def track_bribe(
 
         if not bribes:
             logger.warning(f"No bribe reports found for query: {query_description}")
-            return JSONResponse(
-                {"error": "No reports found for the provided information."},
-                status_code=404,
-            )
+            # Check if request is AJAX 
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JSONResponse({"error": "No reports found for the provided information."}, status_code=404)
+            else:
+                # Render the template with error message for normal form POST
+                context = {"request": request, "bribes": [], "error": "No bribe reports found for the provided information.", "current_user": current_user}
+                return templates.TemplateResponse("track_report.html", context)
 
         bribe_data = []
 

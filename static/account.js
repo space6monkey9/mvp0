@@ -22,17 +22,23 @@ function hideUsernameForm() {
     document.querySelector('#usernameBanner .modal-content #message').innerHTML = '';
 }
 
-function showSigninForm(title = "Sign-in to Report") {
+function showSigninForm(title = "Sign-in to Report", reportingId = null) {
     const banner = document.getElementById('signinBanner');
-        if (banner) {
-            const heading = banner.querySelector('h2');
-            if (heading) {
-                heading.textContent = title;
-            }
-            banner.style.display = 'block';
+    if (banner) {
+        const heading = banner.querySelector('h2');
+        if (heading) {
+            heading.textContent = title;
         }
+        banner.style.display = 'block';
+    }
     const form = document.getElementById('signinForm');
-    form.reset(); 
+    form.reset();
+
+    // Set reportingId if provided
+    const reportingIdInput = document.getElementById('signinReportingId');
+    if (reportingIdInput) {
+        reportingIdInput.value = reportingId || '';
+    }
 }
 
 function hideSigninForm() {
@@ -165,6 +171,7 @@ async function handleSigninSubmitForm(event) {
     const form = event.target;
     const username = form.username.value;
     const password = form.querySelector('#signinPassword').value;
+    const reportingId = form.querySelector('#signinReportingId').value;
     const messageDiv = document.querySelector('#signinBanner .modal-content #message');
 
     messageDiv.innerHTML = '';
@@ -183,7 +190,6 @@ async function handleSigninSubmitForm(event) {
         try {
             result = await response.json();
         } catch (jsonError) {
-            
             messageDiv.innerHTML = 'An unexpected error occurred. Please try again.';
             messageDiv.style.color = 'red';
             return; 
@@ -192,17 +198,31 @@ async function handleSigninSubmitForm(event) {
         if (response.ok) { 
             messageDiv.innerHTML = result.message ||'Signed-in Succeessfully!';
             messageDiv.style.color = 'green';
-            if (result.redirect_url) {
+            if (reportingId) {
                 
+                setTimeout(() => {
+                    // Create a form and submit it as POST
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/track_bribe';
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'reportingId';
+                    input.value = reportingId;
+                    form.appendChild(input);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }, 1000);
+            } else if (result.redirect_url) {
                 setTimeout(() => {
                     window.location.href = result.redirect_url;
                 }, 1000); 
             } else {
-                 
-                 setTimeout(hideSigninForm, 1000);
+                setTimeout(hideSigninForm, 1000);
             }
         } else {
-           
             messageDiv.innerHTML = result.error || 'Error signing in - please try again';
             messageDiv.style.color = 'red';
             setTimeout(() => {
@@ -211,7 +231,6 @@ async function handleSigninSubmitForm(event) {
             }, 1500);
         }
     } catch (error) {
-        
         messageDiv.innerHTML = 'Network error or server issue - please try again';
         messageDiv.style.color = 'red';
         setTimeout(() => {
