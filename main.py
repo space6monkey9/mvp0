@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, UploadFile, Depends
+from fastapi import FastAPI, Request, Form, UploadFile, Depends,HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -14,7 +14,7 @@ import datetime
 from supabase import SupabaseAuthClient
 from pydantic import BaseModel, constr
 import logging
-from contextlib import asynccontextmanager
+import asyncio
 
 # configure logging
 logging.basicConfig(
@@ -27,30 +27,71 @@ logger = logging.getLogger(__name__)
 
 logger.info("--- main.py loaded, imports successful ---")
 
-supabase_url: str | None = os.environ.get("supabase_url")
-supabase_key: str | None = os.environ.get("supabase_key")
+supabase: create_async_client | None = None
+supabase_initialization_lock = asyncio.Lock()
 
-logger.info("Attempting to create Supabase sync client...")
-supabase = create_client(supabase_url, supabase_key)
-logger.info("Supabase sync client created successfully.")
+# --- Async Initializer Function ---
+async def initialize_supabase_client():
+    """Initializes the global Supabase async client if not already done."""
+    global supabase # Declare intent to modify the global variable
 
-logger.info("--- About to initialize FastAPI app ---")
-app = FastAPI()
-logger.info("--- FastAPI app initialized ---")
+    # Check if already initialized (avoid redundant work within the lock)
+    if supabase:
+        return True
 
-secret_key_value = os.environ.get("secret_key")
-if not secret_key_value:
-    logger.error("CRITICAL: secret_key environment variable is missing or empty!")
-else:
-    logger.info("Found secret_key environment variable.")
-app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
+    logger.info("Attempting to initialize Supabase async client...")
+    supabase_url: str | None = os.environ.get("supabase_url")
+    supabase_key: str | None = os.environ.get("supabase_key")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+    if not supabase_url:
+        logger.error("CRITICAL: supabase_url environment variable not found for async client!")
+        return False
+    else:
+        logger.info("Found supabase_url for async client: True")
 
-templates = Jinja2Templates(directory="templates")
+    if not supabase_key:
+        logger.error("CRITICAL: supabase_key environment variable not found for async client!")
+        return False
+    else:
+        logger.info("Found supabase_key for async client.")
+
+    try:
+        supabase = await create_async_client(supabase_url, supabase_key)
+        logger.info("Supabase async client created successfully.")
+        return True
+    except Exception as e:
+        logger.error(
+            f"CRITICAL: Failed to create Supabase async client: {e}", exc_info=True
+        )
+        supabase = None # Ensure it's None on failure
+        return False
+
+# --- Dependency to get Supabase Client (Handles Lazy Init) ---
+async def get_supabase_client() -> create_async_client:
+    """
+    Dependency that provides the initialized Supabase async client.
+    Handles lazy initialization with locking.
+    """
+    global supabase
+    if supabase is None:
+        async with supabase_initialization_lock:
+            # Double-check locking pattern: check again inside the lock
+            if supabase is None:
+                initialized = await initialize_supabase_client()
+                if not initialized or supabase is None:
+                    logger.critical("!!! Supabase client initialization FAILED. Service unavailable. !!!")
+                    raise HTTPException(status_code=503, detail="Supabase client initialization failed.")
+    
+    return supabase
 
 # Dependency to get current user from Supabase session
-async def get_current_user(request: Request) -> SupabaseAuthClient | None:
+async def get_current_user(
+        request: Request,
+   # Use the new dependency to get the initialized client
+    current_supabase_client: create_async_client = Depends(get_supabase_client)
+    ) -> SupabaseAuthClient | None:
+    """Gets the current user using the injected Supabase client."""
+
     supabase_session_data = request.session.get("supabase_session")
     if not supabase_session_data:
         logger.info("No Supabase session found in Starlette session.")
@@ -66,10 +107,10 @@ async def get_current_user(request: Request) -> SupabaseAuthClient | None:
 
     try:
         # Set the session for the supabase client instance for this request
-        await supabase.auth.set_session(
+        await current_supabase_client.auth.set_session(
             access_token=access_token, refresh_token=refresh_token
         )
-        response = await supabase.auth.get_user()
+        response = await current_supabase_client.auth.get_user()
         # user is retrieved directly from the response object
         user = response.user
         if user:
@@ -80,7 +121,7 @@ async def get_current_user(request: Request) -> SupabaseAuthClient | None:
             logger.warning("No user found with current token, attempting refresh")
             if refresh_token:
                 try:
-                    refresh_response = await supabase.auth.refresh_session(
+                    refresh_response = await current_supabase_client.auth.refresh_session(
                         refresh_token
                     )
                     if refresh_response and refresh_response.session:
@@ -99,7 +140,7 @@ async def get_current_user(request: Request) -> SupabaseAuthClient | None:
                             "supabase_session", None
                         )  # Clear invalid session
                         await (
-                            supabase.auth.sign_out()
+                    await current_supabase_client.auth.sign_out()
                         )  # Clear supabase client session state
                         return None
                 except Exception as refresh_e:
@@ -107,12 +148,12 @@ async def get_current_user(request: Request) -> SupabaseAuthClient | None:
                         f"Error refreshing session: {refresh_e}", exc_info=True
                     )
                     request.session.pop("supabase_session", None)
-                    await supabase.auth.sign_out()
+                    await current_supabase_client.auth.sign_out()
                     return None
             else:
                 logger.warning("No refresh token available to refresh session.")
                 request.session.pop("supabase_session", None)
-                await supabase.auth.sign_out()
+                await current_supabase_client.auth.sign_out()
                 return None
 
     except Exception as e:
@@ -123,7 +164,7 @@ async def get_current_user(request: Request) -> SupabaseAuthClient | None:
                 logger.warning(
                     "Attempting refresh due to session validation exception..."
                 )
-                refresh_response = await supabase.auth.refresh_session(refresh_token)
+                refresh_response = await current_supabase_client.auth.refresh_session(refresh_token)
                 if refresh_response and refresh_response.session:
                     logger.info(
                         f"Session refreshed successfully after exception for user: {refresh_response.user.id}"
@@ -137,7 +178,7 @@ async def get_current_user(request: Request) -> SupabaseAuthClient | None:
                         "Refresh token failed or returned no session after exception."
                     )
                     request.session.pop("supabase_session", None)
-                    await supabase.auth.sign_out()
+                    await current_supabase_client.auth.sign_out()
                     return None
             except Exception as refresh_e:
                 logger.error(
@@ -145,16 +186,30 @@ async def get_current_user(request: Request) -> SupabaseAuthClient | None:
                     exc_info=True,
                 )
                 request.session.pop("supabase_session", None)
-                await supabase.auth.sign_out()
+                await current_supabase_client.auth.sign_out()
                 return None
         else:
             logger.warning(
                 "No refresh token available after session validation exception, clearing session."
             )
             request.session.pop("supabase_session", None)
-            await supabase.auth.sign_out()
+            await current_supabase_client.auth.sign_out()
             return None
 
+logger.info("--- About to initialize FastAPI app ---")
+app = FastAPI()
+logger.info("--- FastAPI app initialized ---")
+
+secret_key_value = os.environ.get("secret_key")
+if not secret_key_value:
+    logger.error("CRITICAL: secret_key environment variable is missing or empty!")
+else:
+    logger.info("Found secret_key environment variable.")
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
 async def index(
@@ -243,6 +298,7 @@ async def report_bribe(
     date: str = Form(None),
     evidence_files: List[UploadFile] = Form([]),
     current_user: SupabaseAuthClient | None = Depends(get_current_user),
+    current_supabase_client: create_async_client = Depends(get_supabase_client)
 ):
     if not current_user:
         logger.warning("Unauthorized attempt to report bribe.")
@@ -360,7 +416,7 @@ async def report_bribe(
                         )
 
                         # Set session for storage interaction
-                        await supabase.auth.set_session(
+                        await current_supabase_client.auth.set_session(
                             access_token=request.session.get(
                                 "supabase_session", {}
                             ).get("access_token"),
@@ -369,7 +425,7 @@ async def report_bribe(
                             ).get("refresh_token"),
                         )
 
-                        response = await supabase.storage.from_(bucket_name).upload(
+                        response = await current_supabase_client.storage.from_(bucket_name).upload(
                             path=storage_path,
                             file=contents,
                             file_options={
@@ -380,13 +436,12 @@ async def report_bribe(
                         )
                         logger.info(
                             f"Supabase Upload Response Status for {storage_path}: {response}"
-                        )  # Assuming response gives status
+                        )  
 
                         try:
                             # Attempt to get public URL if upload successful
-
                             if response:
-                                url_response = await supabase.storage.from_(
+                                url_response = await current_supabase_client.storage.from_(
                                     bucket_name
                                 ).get_public_url(storage_path)
                                 logger.info(
@@ -401,7 +456,7 @@ async def report_bribe(
                                 upload_successful = False
                                 # Attempt cleanup
                                 try:
-                                    await supabase.storage.from_(bucket_name).remove(
+                                    await current_supabase_client.storage.from_(bucket_name).remove(
                                         [storage_path]
                                     )
                                     logger.info(
@@ -423,7 +478,7 @@ async def report_bribe(
                             # Attempt cleanup if storage_path was defined
                             if "storage_path" in locals():
                                 try:
-                                    await supabase.storage.from_(bucket_name).remove(
+                                    await current_supabase_client.storage.from_(bucket_name).remove(
                                         [storage_path]
                                     )
                                     logger.info(
@@ -487,7 +542,6 @@ async def report_bribe(
                 },
                 status_code=500,
             )
-
 
 @app.post("/track_bribe")
 async def track_bribe(
@@ -599,13 +653,14 @@ class UsernameCheckRequest(BaseModel):
 
 @app.post("/check_username")
 async def check_username_availability(
-    request: Request, username_data: UsernameCheckRequest
+    request: Request, username_data: UsernameCheckRequest,
+    current_supabase_client: create_async_client = Depends(get_supabase_client)
 ):
     username_to_check = username_data.username.lower()
     logger.info(f"Checking username availability for: '{username_to_check}'")
 
     try:
-        username_check = await supabase.rpc(
+        username_check = await current_supabase_client.rpc(
             "check_username_exist", {"username_text": username_to_check}
         ).execute()
         logger.debug(
@@ -631,7 +686,7 @@ async def check_username_availability(
 
 
 @app.post("/signup")
-async def signup(request: Request, username_data: dict):
+async def signup(request: Request, username_data: dict, current_supabase_client: create_async_client = Depends(get_supabase_client)):
     username = username_data.get("username")
     if not username:
         logger.error("Signup attempt failed: Username missing from request data.")
@@ -647,7 +702,7 @@ async def signup(request: Request, username_data: dict):
 
     # Check if username already exists via RPC
     try:
-        username_check = await supabase.rpc(
+        username_check = await current_supabase_client.rpc(
             "check_username_exist", {"username_text": username}
         ).execute()
         logger.debug(
@@ -678,7 +733,7 @@ async def signup(request: Request, username_data: dict):
 
     try:
         logger.info(f"Attempting Supabase Auth signup for email '{email}'.")
-        response1 = await supabase.auth.sign_up(
+        response1 = await current_supabase_client.auth.sign_up(
             {
                 "email": email,
                 "password": password,
@@ -694,7 +749,7 @@ async def signup(request: Request, username_data: dict):
             f"Inserting user record into public table for user '{username}', ID: {response1.user.id}"
         )
         response2 = (
-            await supabase.table("user")
+            await current_supabase_client.table("user")
             .insert({"username": username, "id": response1.user.id})
             .execute()
         )
@@ -716,7 +771,7 @@ async def signup(request: Request, username_data: dict):
 
 
 @app.post("/signin")
-async def signin(request: Request, username_data: dict):
+async def signin(request: Request, username_data: dict, current_supabase_client: create_async_client = Depends(get_supabase_client)):
     username = username_data.get("username").lower()
     password = username_data.get("password").lower()
 
@@ -724,7 +779,7 @@ async def signin(request: Request, username_data: dict):
     email = f"{username}@{username}.com"
 
     try:
-        response = await supabase.auth.sign_in_with_password(
+        response = await current_supabase_client.auth.sign_in_with_password(
             {"email": email, "password": password}
         )
         # logger.debug(f"Supabase signin response user: {response.user}")
@@ -758,7 +813,7 @@ async def signin(request: Request, username_data: dict):
         # Clear any potentially partially set session data on failure
         request.session.pop("supabase_session", None)
         try:
-            await supabase.auth.sign_out()  # Ensure Supabase client state is cleared
+            await current_supabase_client.auth.sign_out()  # Ensure Supabase client state is cleared
             logger.info("Cleared Supabase client state after signin failure.")
         except Exception as signout_e:
             logger.error(
@@ -770,7 +825,7 @@ async def signin(request: Request, username_data: dict):
 
 
 @app.post("/signout")
-async def signout(request: Request):
+async def signout(request: Request, current_supabase_client: create_async_client = Depends(get_supabase_client)):
     # Get username from session before popping it for logging
     session_data = request.session.get("supabase_session")
     username_for_log = session_data.get("username") if session_data else "Unknown user"
@@ -783,7 +838,7 @@ async def signout(request: Request):
 
     try:
         #  invalidate the supabase tokens
-        response = await supabase.auth.sign_out()
+        response = await current_supabase_client.auth.sign_out()
         # logger.debug(f"Supabase signout response: {response}"), Should be None on success
         logger.info(f"Supabase signout successful for user '{username_for_log}'.")
 
