@@ -7,9 +7,11 @@
 {% endblock %}
 {% block button%}
     <a href="/" class="button-primary" style="margin-right: 10px;">Home</a>
+    {% if current_user %}
     {% block report_bribe %}
         <a href="/report"> <button class="button-primary">Report Bribe</button></a>
     {% endblock %}
+    {% endif %}
     <div class="heading"><h1>Tracked Bribe Reports</h1></div>
 {% endblock %}
 {% block content %}
