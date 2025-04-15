@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 logger.info("--- main.py loaded, imports successful ---")
 
-supabase: create_async_client | None = None
+supabase = None
 supabase_initialization_lock = asyncio.Lock()
 
 # --- Async Initializer Function ---
@@ -40,20 +40,8 @@ async def initialize_supabase_client():
         return True
 
     logger.info("Attempting to initialize Supabase async client...")
-    supabase_url: str | None = os.environ.get("supabase_url")
-    supabase_key: str | None = os.environ.get("supabase_key")
-
-    if not supabase_url:
-        logger.error("CRITICAL: supabase_url environment variable not found for async client!")
-        return False
-    else:
-        logger.info("Found supabase_url for async client: True")
-
-    if not supabase_key:
-        logger.error("CRITICAL: supabase_key environment variable not found for async client!")
-        return False
-    else:
-        logger.info("Found supabase_key for async client.")
+    supabase_url = os.environ.get("supabase_url")
+    supabase_key = os.environ.get("supabase_key")
 
     try:
         supabase = await create_async_client(supabase_url, supabase_key)
@@ -63,7 +51,7 @@ async def initialize_supabase_client():
         logger.error(
             f"CRITICAL: Failed to create Supabase async client: {e}", exc_info=True
         )
-        supabase = None # Ensure it's None on failure
+        supabase = None # None on failure
         return False
 
 # --- Dependency to get Supabase Client (Handles Lazy Init) ---
@@ -210,6 +198,8 @@ app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
+
+SQLModel.metadata.createAll(engine)
 
 @app.get("/")
 async def index(
