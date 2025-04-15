@@ -6,14 +6,7 @@
 
 {% block extra_js %}
 <script>
-    function showIncorrectUsernameBanner() {
-        document.getElementById('incorrectUsernameBanner').style.display = 'block';
-    }
-
-    function hideIncorrectUsernameBanner() {
-        document.getElementById('incorrectUsernameBanner').style.display = 'none';
-    }
-
+    
     function showBribeReportedBanner(bribeId) {
         document.getElementById('reportingId').textContent = bribeId;
         document.getElementById('bribeReportedBanner').style.display = 'block';
@@ -23,8 +16,7 @@
         document.getElementById('bribeReportedBanner').style.display = 'none';
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('incorrectUsernameBanner').style.display = 'none'; 
+    document.addEventListener('DOMContentLoaded', () => { 
         document.getElementById('bribeReportedBanner').style.display = 'none'; 
     });
 
@@ -91,12 +83,16 @@
 <span class="welcome-message">Welcome, {{ current_user.user_metadata.get('username', 'User') }}!</span>
 {% endblock %}
 
-<!-- Incorrect Username Banner -->
 {% block content %}
 <div id="banner-container">
+
+<div id="banner-container">
+    {% if bribe_id %}
+        {% include "bribe_reported.html" %}
+    {% endif %}
+</div>
     
 <!-- Bribe Reported Banner -->
-    {% include "bribe_reported.html" %}
 </div>
 <div class="table-container">
     <h1>Report Bribe:</h1>

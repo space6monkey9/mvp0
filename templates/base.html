@@ -19,7 +19,9 @@
         {% block button %}
         <div class="sub-header">
             {% if current_user %}
+                {% block report_bribe %}
                  <a href="/report"> <button class="button-primary">Report Bribe</button></a>
+                 {% endblock %}
                  <form action="/signout" method="post" style="display: inline;">
                     <button type="submit" class="button-primary">Sign-out</button>
                  </form>

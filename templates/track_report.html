@@ -7,6 +7,9 @@
 {% endblock %}
 {% block button%}
     <a href="/" class="button-primary" style="margin-right: 10px;">Home</a>
+    {% block report_bribe %}
+        <a href="/report"> <button class="button-primary">Report Bribe</button></a>
+    {% endblock %}
     <div class="heading"><h1>Tracked Bribe Reports</h1></div>
 {% endblock %}
 {% block content %}

@@ -481,8 +481,7 @@ async def report_bribe(
                 {
                     "request": request,
                     "bribe_id": bribe.bribe_id,
-                    "current_user": current_user,
-                },
+                }
             )
         else:
             # If any upload failed, ROLLBACK the transaction
