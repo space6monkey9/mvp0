@@ -12,8 +12,21 @@
     });
 
     function showBribeReportedBanner(bribeId) {
-        document.getElementById('reportingId').textContent = bribeId;
-        document.getElementById('bribeReportedBanner').style.display = 'block';
+        const reportingIdElem = document.getElementById('reportingId');
+        const banner = document.getElementById('bribeReportedBanner');
+        if (reportingIdElem && banner) {
+            //  clear previous value
+            reportingIdElem.textContent = '';
+            
+            if (bribeId !== undefined && bribeId !== null && bribeId !== '') {
+                reportingIdElem.textContent = bribeId;
+            } else {
+                reportingIdElem.textContent = '[Error: No Reporting ID]';
+            }
+            banner.style.display = 'block';
+        } else {
+            alert('Bribe reported, but could not display Reporting ID banner.');
+        }
     }
 
     function hideBribeReportedBanner() {
@@ -29,8 +42,8 @@
 <script src="static/track_bribe.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-    stateDistrict('state', 'district');
-   });
+        stateDistrict('state', 'district');
+    });
 </script>
 {% endblock %}
 
@@ -105,11 +118,28 @@
         })
         .then(async response => {
             if (response.ok) {
-                const data = await response.json();
-                showBribeReportedBanner(data.bribe_id);
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    alert('Bribe reported, but could not parse server response.');
+                    return;
+                }
+                if (data && data.bribe_id) {
+                    showBribeReportedBanner(data.bribe_id);
+                } else {
+                    showBribeReportedBanner(null); // Will show error fallback
+                }
                 form.reset();
             } else {
-                alert('Error reporting bribe. Please try again.');
+                let errorMsg = 'Error reporting bribe. Please try again.';
+                try {
+                    const errData = await response.json();
+                    if (errData && errData.error) {
+                        errorMsg = errData.error;
+                    }
+                } catch (e) {}
+                alert(errorMsg);
             }
         })
         .catch(error => {
@@ -120,7 +150,9 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const reportForm = document.getElementById('reportBribeForm');
-        reportForm.addEventListener('submit', submitReport);
+        if (reportForm) {
+            reportForm.addEventListener('submit', submitReport);
+        }
     });
 </script>
 </div>
