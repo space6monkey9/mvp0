@@ -8,13 +8,13 @@ from sqlmodel import Session, select, func, SQLModel
 import datetime
 from starlette.middleware.sessions import SessionMiddleware
 import os
-from supabase import create_client, create_async_client
+from supabase import create_async_client
 from typing import List
 import datetime
 from supabase import SupabaseAuthClient
 from pydantic import BaseModel, constr
 import logging
-import asyncio
+
 
 # configure logging
 logging.basicConfig(
@@ -27,50 +27,43 @@ logger = logging.getLogger(__name__)
 
 logger.info("--- main.py loaded, imports successful ---")
 
-supabase = None
-supabase_initialization_lock = asyncio.Lock()
-
-# --- Async Initializer Function ---
-async def initialize_supabase_client():
-    """Initializes the global Supabase async client if not already done."""
-    global supabase # Declare intent to modify the global variable
-
-    # Check if already initialized (avoid redundant work within the lock)
-    if supabase:
-        return True
-
-    logger.info("Attempting to initialize Supabase async client...")
-    supabase_url = os.environ.get("supabase_url")
-    supabase_key = os.environ.get("supabase_key")
-
-    try:
-        supabase = await create_async_client(supabase_url, supabase_key)
-        logger.info("Supabase async client created successfully.")
-        return True
-    except Exception as e:
-        logger.error(
-            f"CRITICAL: Failed to create Supabase async client: {e}", exc_info=True
-        )
-        supabase = None # None on failure
-        return False
-
 # --- Dependency to get Supabase Client (Handles Lazy Init) ---
 async def get_supabase_client() -> create_async_client:
     """
-    Dependency that provides the initialized Supabase async client.
-    Handles lazy initialization with locking.
+    Dependency that creates and provides a NEW Supabase async client
+    instance FOR EACH request.
     """
-    global supabase
-    if supabase is None:
-        async with supabase_initialization_lock:
-            # Double-check locking pattern: check again inside the lock
-            if supabase is None:
-                initialized = await initialize_supabase_client()
-                if not initialized or supabase is None:
-                    logger.critical("!!! Supabase client initialization FAILED. Service unavailable. !!!")
-                    raise HTTPException(status_code=503, detail="Supabase client initialization failed.")
+    supabase_url: str | None = os.environ.get("supabase_url")
+    supabase_key: str | None = os.environ.get("supabase_key")
+
+    try:
+        # Create a new client instance every time the dependency is resolved
+        client = await create_async_client(supabase_url, supabase_key)
+        logger.debug("New Supabase async client created successfully for this request.")
+        return client
+    except Exception as e:
+        logger.error(
+            f"CRITICAL: Failed to create Supabase async client for request: {e}", exc_info=True
+        )
+        # Raise 503 if client creation fails for any reason
+        raise HTTPException(status_code=503, detail="Failed to initialize service dependency.")
     
-    return supabase
+logger.info("--- About to initialize FastAPI app ---")
+app = FastAPI()
+logger.info("--- FastAPI app initialized ---")
+
+secret_key_value = os.environ.get("secret_key")
+if not secret_key_value:
+    logger.error("CRITICAL: secret_key environment variable is missing or empty!")
+else:
+    logger.info("Found secret_key environment variable.")
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
+
+SQLModel.metadata.create_all(engine)
 
 # Dependency to get current user from Supabase session
 async def get_current_user(
@@ -78,11 +71,11 @@ async def get_current_user(
    # Use the new dependency to get the initialized client
     current_supabase_client: create_async_client = Depends(get_supabase_client)
     ) -> SupabaseAuthClient | None:
-    """Gets the current user using the injected Supabase client."""
+    """Gets the current user using the injected request-scoped Supabase client."""
 
     supabase_session_data = request.session.get("supabase_session")
     if not supabase_session_data:
-        logger.info("No Supabase session found in Starlette session.")
+        
         return None
 
     # trying to get user with existing access token
@@ -184,23 +177,6 @@ async def get_current_user(
             await current_supabase_client.auth.sign_out()
             return None
 
-logger.info("--- About to initialize FastAPI app ---")
-app = FastAPI()
-logger.info("--- FastAPI app initialized ---")
-
-secret_key_value = os.environ.get("secret_key")
-if not secret_key_value:
-    logger.error("CRITICAL: secret_key environment variable is missing or empty!")
-else:
-    logger.info("Found secret_key environment variable.")
-app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-templates = Jinja2Templates(directory="templates")
-
-SQLModel.metadata.create_all(engine)
-
 @app.get("/")
 async def index(
     request: Request,
@@ -251,7 +227,6 @@ async def index(
                 "current_user": current_user,
             },
         )
-
 
 @app.get("/report")
 async def report(
