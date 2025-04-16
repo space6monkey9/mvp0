@@ -12,14 +12,10 @@
     });
 
     function showBribeReportedBanner(bribeId) {
-        console.log("Reporting id 1: ", bribeId)
         const reportingIdElem = document.getElementById('bribeReportSuccessId');
         const banner = document.getElementById('bribeReportedBanner');
         if (reportingIdElem && banner) {
-            console.log("Reporting id 2: ", bribeId)
             reportingIdElem.textContent = bribeId;
-            console.log("textContent after setting:", reportingIdElem.textContent);
-            console.log("innerHTML after setting:", reportingIdElem.innerHTML);
             banner.style.display = 'block';
         } else {
             alert('Bribe reported, but could not display Reporting ID banner.');

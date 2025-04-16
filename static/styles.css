@@ -171,17 +171,92 @@ h2 {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .header {
+        flex-direction: column; /* Stack header items */
+        align-items: flex-start; /* Align items to the start */
+    }
+    .header .sub-header, .header .header-buttons {
+        width: 100%; /* Make button groups take full width */
+        margin-bottom: 10px; /* Add space between stacked groups */
+        text-align: center; /* Center buttons */
+    }
+    .header .header-buttons {
+        margin-left: 0; /* Remove left margin */
+    }
+    .welcome-message {
+        width: 100%;
+        text-align: center; /* Center welcome message */
+        margin-top: 10px;
+    }
+
     .table-container {
         width: 95%; /* Slightly wider on mobile */
         margin-left: auto;
         margin-right: auto;
+        max-height: calc(100vh - 250px); /* Adjust max-height if header grew */
     }
 
-    .leaderboard td:nth-child(4),
+    .leaderboard td:nth-child(4), /* Hide City column */
     .leaderboard th:nth-child(4),
-    .leaderboard td:nth-child(3),
+    .leaderboard td:nth-child(3), /* Hide State column */
     .leaderboard th:nth-child(3) {
         display: none;
+    }
+
+    .modal-content {
+        width: 90%; /* Adjust modal width for tablets */
+        margin: 20% auto; /* Adjust top margin */
+    }
+
+    h1 {
+        font-size: 1.8em; /* Slightly smaller heading */
+    }
+
+    .button-primary {
+        padding: 5px 12px; /* Slightly larger touch target */
+    }
+
+    .pagination a, .pagination span {
+        padding: 8px 12px; /* Easier tapping */
+        margin: 0 3px;
+    }
+}
+
+/* Mobile Specific */
+@media (max-width: 480px) {
+    .header {
+        padding: 10px; /* Reduce header padding */
+    }
+    .button-primary {
+        font-size: 0.9em; /* Smaller font on buttons */
+        padding: 6px 10px;
+    }
+
+    .table-container {
+        width: 98%;
+    }
+
+    /* Adjust table padding and font for small screens */
+    .leaderboard th, .leaderboard td {
+        padding: 8px; /* Reduce cell padding */
+        font-size: 0.9em; /* Smaller table text */
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 15px;
+        margin: 25% auto;
+    }
+
+    h1 {
+        font-size: 1.5em;
+    }
+
+    .pagination {
+        flex-wrap: wrap; /* Allow pagination buttons to wrap */
+    }
+    .pagination a, .pagination span {
+        margin-bottom: 5px; /* Add space if they wrap */
     }
 }
 

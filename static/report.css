@@ -49,9 +49,25 @@ input:focus, textarea:focus {
 
 /* Mobile styles */
 @media (max-width: 768px) {
-    .state-selector, .district-selector {
-        font-size: 14px;
-        padding: 10px;
+    .form-grid {
+        grid-template-columns: 1fr;
+        width: 95%;
+        gap: 10px;
+    }
+
+    label {
+        text-align: left;
+        padding: 5px 0;
+    }
+
+    input, textarea, .state-selector, .district-selector {
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    button[type="submit"] {
+        width: 100%;
+        padding: 12px;
     }
 }
 
@@ -70,91 +86,42 @@ button[type="submit"] {
     color: #666;
 }
 
-/* Modal/Banner Styles */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-}
-
-.modal-content {
-    position: relative;
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 500px;
-    border-radius: 8px;
-}
-
-.close {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    color: #636262;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close:hover {
-    color: black;
-}
-
-.modal-content form {
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-.modal-content label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    text-align: left;
-}
-
-.modal-content input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.modal-content button {
-    width: 30%;
-    padding: 10px;
-    background-color: #000000;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-.modal-content button:hover {
-    background-color: #323232;
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
     .form-grid {
         grid-template-columns: 1fr;
         width: 95%;
+        gap: 10px;
     }
 
     label {
         text-align: left;
+        padding: 5px 0;
+    }
+
+    input, textarea, .state-selector, .district-selector {
+        padding: 12px;
+        font-size: 16px;
     }
 
     button[type="submit"] {
         width: 100%;
+        padding: 12px;
+    }
+}
+
+/* Smaller Mobile adjustments */
+@media (max-width: 480px) {
+    .table-container form {
+        padding: 20px;
+    }
+
+    input, textarea, .state-selector, .district-selector {
+        font-size: 15px;
+        padding: 11px;
+    }
+
+    button[type="submit"] {
+        padding: 14px;
     }
 }
