@@ -122,10 +122,14 @@
         <input type="text" id="department" name="department" required>
 
         <label for="amount">Bribe Amount: (₹):</label>
-        <input type="number" id="amount" name="amount" required min="100" oninvalid="this.setCustomValidity('Amount must be in numbers and at least 10')" pattern="[0-9]+">
+        <input type="number" id="amount" name="amount" required min="10" 
+               oninvalid="this.setCustomValidity('Amount must be in numbers and at least 10')" 
+               oninput="this.setCustomValidity('')" pattern="[0-9]+">
 
         <label for="pincode">PIN Code:</label>
-        <input type="text" id="pincode" name="pincode" pattern="[0-9]{6}" oninvalid="this.setCustomValidity('Pincode must be 6 digits')">
+        <input type="text" id="pincode" name="pincode" pattern="[0-9]{6}" 
+               oninvalid="this.setCustomValidity('Pincode must be 6 digits')" 
+               oninput="this.setCustomValidity('')">
 
         <label for="state">State/UT:</label>
         <select id="state" name="state" required class="state-selector">
