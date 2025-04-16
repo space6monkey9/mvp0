@@ -17,8 +17,8 @@
         const banner = document.getElementById('bribeReportedBanner');
         if (reportingIdElem && banner) {
             console.log("Reporting id 2: ", bribeId)
-            reportingIdElem.textContent = bribeId;
-            console.log("textContent after setting:", reportingIdElem.textContent);
+            reportingIdElem.innerText = bribeId;
+            console.log("textContent after setting:", reportingIdElem.innerText);
             console.log("innerHTML after setting:", reportingIdElem.innerHTML);
             banner.style.display = 'block';
         } else {
