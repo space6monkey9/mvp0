@@ -272,7 +272,7 @@ async def report_bribe(
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == username)).first()
 
-        if official is None:
+        if official is '':
             official = "*UNKNOWN"
 
         parsed_date = None
