@@ -13,27 +13,14 @@
 
     function showBribeReportedBanner(bribeId) {
         console.log("Reporting id 1: ", bribeId)
-        const reportingIdElem = document.getElementById('reportingId');
+        const reportingIdElem = document.getElementById('bribeReportSuccessId');
         const banner = document.getElementById('bribeReportedBanner');
         if (reportingIdElem && banner) {
             console.log("Reporting id 2: ", bribeId)
-            
-            // 1. Set the text content
-            reportingIdElem.innerText = bribeId; // Using innerText as we tried before
-            console.log("innerText immediately after setting:", reportingIdElem.innerText);
-            console.log("innerHTML immediately after setting:", reportingIdElem.innerHTML);
-
-            // 2. Force browser reflow - add this line
-            console.log("Forcing reflow by reading offsetHeight:", reportingIdElem.offsetHeight); 
-
-            // 3. Check content *after* reflow
-            console.log("innerText after reflow:", reportingIdElem.innerText);
-            console.log("innerHTML after reflow:", reportingIdElem.innerHTML);
-
-            // 4. Now make the banner visible
+            reportingIdElem.textContent = bribeId;
+            console.log("textContent after setting:", reportingIdElem.textContent);
+            console.log("innerHTML after setting:", reportingIdElem.innerHTML);
             banner.style.display = 'block';
-            console.log("Banner display set to block");
-
         } else {
             alert('Bribe reported, but could not display Reporting ID banner.');
         }
@@ -75,7 +62,9 @@
                     if (errData && errData.error) {
                         errorMsg = errData.error;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Server returned error status, and failed to parse error response:", e);
+                }
                 alert(errorMsg);
             }
         })
@@ -89,6 +78,8 @@
         const reportForm = document.getElementById('reportBribeForm');
         if (reportForm) {
             reportForm.addEventListener('submit', submitReport);
+        } else {
+            console.error("Could not find form with ID reportBribeForm to attach listener.");
         }
     });
 
@@ -171,7 +162,7 @@
     <div class="modal-content">
         <span class="close" onclick="hideBribeReportedBanner()">&times;</span>
         <h2 style="color: green; margin-bottom: 15px;">Bribe Reported Successfully!</h2>
-        <p style="text-align: center;">Your Reporting ID is:  <span id="reportingId"></span></p>
+        <p style="text-align: center;">Your Reporting ID is:  <span id="bribeReportSuccessId"></span></p>
         <p>Use this Reporting ID or your username to track bribes later </p>
     </div>
 </div>
