@@ -15,14 +15,7 @@
         const reportingIdElem = document.getElementById('reportingId');
         const banner = document.getElementById('bribeReportedBanner');
         if (reportingIdElem && banner) {
-            //  clear previous value
-            reportingIdElem.textContent = '';
-            
-            if (bribeId !== undefined && bribeId !== null && bribeId !== '') {
-                reportingIdElem.textContent = bribeId;
-            } else {
-                reportingIdElem.textContent = '[Error: No Reporting ID]';
-            }
+            reportingIdElem.textContent = bribeId;
             banner.style.display = 'block';
         } else {
             alert('Bribe reported, but could not display Reporting ID banner.');
@@ -32,6 +25,56 @@
     function hideBribeReportedBanner() {
         document.getElementById('bribeReportedBanner').style.display = 'none';
     }
+
+    // Submit the form via AJAX using submitReport(event)
+    function submitReport(event) {
+        event.preventDefault();
+        const form = document.getElementById('reportBribeForm');
+        const formData = new FormData(form);
+
+        fetch('/report_bribe', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(async response => {
+            if (response.ok) {
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    alert('Bribe reported, but could not parse server response.');
+                    return;
+                }
+                if (data && data.bribe_id) {
+                    showBribeReportedBanner(data.bribe_id);
+                } else {
+                    showBribeReportedBanner(null); // Will show error fallback
+                }
+                form.reset();
+            } else {
+                let errorMsg = 'Error reporting bribe. Please try again.';
+                try {
+                    const errData = await response.json();
+                    if (errData && errData.error) {
+                        errorMsg = errData.error;
+                    }
+                } catch (e) {}
+                alert(errorMsg);
+            }
+        })
+        .catch(error => {
+            console.error('Network error:', error);
+            alert('Network error. Please try again.');
+        });
+    }
+    
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const reportForm = document.getElementById('reportBribeForm');
+        if (reportForm) {
+            reportForm.addEventListener('submit', submitReport);
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         const reportForm = document.querySelector('.form-grid');
@@ -106,54 +149,7 @@
     </form>
 </div>
 <script>
-    // Submit the form via AJAX using submitReport(event)
-    function submitReport(event) {
-        event.preventDefault();
-        const form = document.getElementById('reportBribeForm');
-        const formData = new FormData(form);
 
-        fetch('/report_bribe', {
-            method: 'POST',
-            body: formData,
-        })
-        .then(async response => {
-            if (response.ok) {
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    alert('Bribe reported, but could not parse server response.');
-                    return;
-                }
-                if (data && data.bribe_id) {
-                    showBribeReportedBanner(data.bribe_id);
-                } else {
-                    showBribeReportedBanner(null); // Will show error fallback
-                }
-                form.reset();
-            } else {
-                let errorMsg = 'Error reporting bribe. Please try again.';
-                try {
-                    const errData = await response.json();
-                    if (errData && errData.error) {
-                        errorMsg = errData.error;
-                    }
-                } catch (e) {}
-                alert(errorMsg);
-            }
-        })
-        .catch(error => {
-            console.error('Network error:', error);
-            alert('Network error. Please try again.');
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const reportForm = document.getElementById('reportBribeForm');
-        if (reportForm) {
-            reportForm.addEventListener('submit', submitReport);
-        }
-    });
 </script>
 </div>
 
