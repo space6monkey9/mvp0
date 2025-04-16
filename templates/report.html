@@ -17,10 +17,23 @@
         const banner = document.getElementById('bribeReportedBanner');
         if (reportingIdElem && banner) {
             console.log("Reporting id 2: ", bribeId)
-            reportingIdElem.innerText = bribeId;
-            console.log("textContent after setting:", reportingIdElem.innerText);
-            console.log("innerHTML after setting:", reportingIdElem.innerHTML);
+            
+            // 1. Set the text content
+            reportingIdElem.innerText = bribeId; // Using innerText as we tried before
+            console.log("innerText immediately after setting:", reportingIdElem.innerText);
+            console.log("innerHTML immediately after setting:", reportingIdElem.innerHTML);
+
+            // 2. Force browser reflow - add this line
+            console.log("Forcing reflow by reading offsetHeight:", reportingIdElem.offsetHeight); 
+
+            // 3. Check content *after* reflow
+            console.log("innerText after reflow:", reportingIdElem.innerText);
+            console.log("innerHTML after reflow:", reportingIdElem.innerHTML);
+
+            // 4. Now make the banner visible
             banner.style.display = 'block';
+            console.log("Banner display set to block");
+
         } else {
             alert('Bribe reported, but could not display Reporting ID banner.');
         }
