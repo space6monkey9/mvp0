@@ -18,6 +18,8 @@
         if (reportingIdElem && banner) {
             console.log("Reporting id 2: ", bribeId)
             reportingIdElem.textContent = bribeId;
+            console.log("textContent after setting:", reportingIdElem.textContent);
+            console.log("innerHTML after setting:", reportingIdElem.innerHTML);
             banner.style.display = 'block';
         } else {
             alert('Bribe reported, but could not display Reporting ID banner.');
@@ -70,7 +72,6 @@
         });
     }
     
-
     document.addEventListener('DOMContentLoaded', () => {
         const reportForm = document.getElementById('reportBribeForm');
         if (reportForm) {
@@ -78,10 +79,6 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const reportForm = document.querySelector('.form-grid');
-        reportForm.addEventListener('submit', submitReport);
-    });
 </script>
 <script src="/static/states.js"></script>
 <script src="static/track_bribe.js"></script>
@@ -107,9 +104,6 @@
 {% endblock %}
 
 {% block content %}
-<div id="banner-container">
-    
-</div>
 <div class="table-container">
     <h1>Report Bribe:</h1>
     <form method="POST" enctype="multipart/form-data" class="form-grid" action="/report_bribe" id="reportBribeForm">
