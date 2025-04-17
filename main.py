@@ -457,6 +457,7 @@ async def report_bribe(
                 f"An unexpected error occurred during file upload process for bribe {bribe_id_candidate}: {e}",
                 exc_info=True,
             )
+            err_msg= e
             upload_successful = False
 
         if upload_successful:
@@ -489,7 +490,7 @@ async def report_bribe(
                 "report.html",
                 {
                     "request": request,
-                    "error": "Failed to upload evidence files. Please try submitting the report again.",
+                    "error": str(err_msg),
                     "current_date": formatted_date,
                     "current_user": current_user,
                 },

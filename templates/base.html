@@ -112,7 +112,9 @@
             </div>
 
             <label for="password">Password:</label>
-            <input type="password" id="signupPassword" name="password" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8">
+            <input type="password" id="signupPassword" name="password" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8" 
+            oninvalid="this.setCustomValidity('Password must be atleast 8 chars and must have atleast 1 numbers and 1 letters')" 
+            oninput="this.setCustomValidity('')">
             
             <label for="confirmPassword">Confirm Password:</label>
             <input type="password" id="confirmPassword" name="confirmPassword" required pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d\S]+$" minlength="8">

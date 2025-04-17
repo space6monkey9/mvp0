@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="/static/mdrm.js"></script>
 <script>
 
     document.addEventListener('DOMContentLoaded', () => { 
@@ -15,7 +16,7 @@
         const reportingIdElem = document.getElementById('bribeReportSuccessId');
         const banner = document.getElementById('bribeReportedBanner');
         if (reportingIdElem && banner) {
-            reportingIdElem.textContent = bribeId;
+            reportingIdElem.textContent = bribeId || 'N/A';
             banner.style.display = 'flex';
         } else {
             alert('Bribe reported, but could not display Reporting ID banner.');
@@ -26,33 +27,38 @@
         document.getElementById('bribeReportedBanner').style.display = 'none';
     }
 
-    // Submit the form via AJAX using submitReport(event)
-    function submitReport(event) {
+    async function submitReport(event) {
         event.preventDefault();
         const form = document.getElementById('reportBribeForm');
-        const formData = new FormData(form);
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Processing...';
 
-        fetch('/report_bribe', {
-            method: 'POST',
-            body: formData,
-        })
-        .then(async response => {
+        try {
+            const processedFormData = await processFormData('reportBribeForm', 'evidence_files');
+
+            const response = await fetch('/report_bribe', {
+                method: 'POST',
+                body: processedFormData,
+            });
+
             if (response.ok) {
                 let data;
                 try {
                     data = await response.json();
                 } catch (e) {
                     alert('Bribe reported, but could not parse server response.');
+                    form.reset();
                     return;
                 }
                 if (data && data.bribe_id) {
                     showBribeReportedBanner(data.bribe_id);
                 } else {
-                    showBribeReportedBanner(null); // Will show error fallback
+                    showBribeReportedBanner(null);
                 }
                 form.reset();
             } else {
-                let errorMsg = 'Error reporting bribe. Please try again.';
+                let errorMsg = `${error.error} : ${error.message}. Please try again.`;
                 try {
                     const errData = await response.json();
                     if (errData && errData.error) {
@@ -63,11 +69,13 @@
                 }
                 alert(errorMsg);
             }
-        })
-        .catch(error => {
-            console.error('Network error:', error);
-            alert('Network error. Please try again.');
-        });
+        } catch (error) {
+            console.error('Error during form processing or network request:', error);
+            alert(`An error occurred: ${error.message || 'Network error. Please check console and try again.'}`);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Submit Report';
+        }
     }
     
     document.addEventListener('DOMContentLoaded', () => {
@@ -77,16 +85,16 @@
         } else {
             console.error("Could not find form with ID reportBribeForm to attach listener.");
         }
+
+        if (typeof stateDistrict === 'function') {
+            stateDistrict('state', 'district');
+        } else {
+            console.error("stateDistrict function not found. State/District dropdowns may not work.");
+        }
     });
 
 </script>
 <script src="/static/states.js"></script>
-<script src="static/track_bribe.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        stateDistrict('state', 'district');
-    });
-</script>
 {% endblock %}
 
 {% block extra_css %}
@@ -127,7 +135,7 @@
 
         <label for="state">State/UT:</label>
         <select id="state" name="state" required class="state-selector">
-            <option value="state">Select State/UT</option>
+            <option value="">Select State/UT</option>
         </select>
 
         <label for="district">District:</label>
@@ -142,8 +150,8 @@
         <label for="date">Date of Incident:</label>
         <input type="date" id="date" name="date" max="{{current_date}}" value="">
          
-        <label for="evidence">Evidence Upload:</label>
-        <input type="file" id="evidence" name="evidence_files" accept=".pdf,.jpg,.png" multiple>
+        <label for="evidence">Evidence Upload (PDF, JPG, PNG):</label>
+        <input type="file" id="evidence" name="evidence_files" accept=".pdf,.jpg,.jpeg,.png" multiple>
 
         <button type="submit" class="button-primary">Submit Report</button>
     </form>
