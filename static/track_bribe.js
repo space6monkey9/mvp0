@@ -1,9 +1,9 @@
-function showTrackBribeForm() { 
-    document.getElementById('trackBribeBanner').style.display = 'block';
+function showTrackBribeForm() {
+    document.getElementById('trackBribeBanner').style.display = 'flex';
     const form = document.getElementById('trackBribeForm');
     form.reset();
     const trackMessageDiv = document.getElementById('trackMessage');
-    trackMessageDiv.innerHTML = ''; 
+    trackMessageDiv.innerHTML = '';
 }
 
 function hideTrackBribeForm() {

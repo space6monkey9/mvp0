@@ -13,15 +13,19 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    border-bottom: 1px solid #eee; /* Light border for light mode */
 }
 .heading {
     flex-grow: 1; /* Allow heading to grow */
     text-align: center; /* Center text within heading */
 }
+.welcome-message {
+    /* Style as needed */
+}
 
 /* Button Styles */
 .button-primary {
-    text-decoration: none ; 
+    text-decoration: none ;
     background-color: #fff;
     color: #000;
     border: 2px solid #333;
@@ -29,63 +33,76 @@
     padding: 3px 10px;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-size: 14px; /* Consistent font size */
+    margin: 0 5px; /* Add some spacing */
 }
 .button-primary:hover {
     background-color: #333;
     color: #fff;
 }
 
-/* Table Container - New */
+/* Table Container */
 .table-container {
-    max-height: calc(100vh - 200px); /* Viewport height minus space for header and footer */
-    overflow-y: auto; /* Enable vertical scrolling */
-    margin: 0 auto 50px; /* Add bottom margin for footer space */
+    max-height: calc(100vh - 200px); /* Adjust as needed */
+    overflow-y: auto;
+    margin: 0 auto 50px;
     width: 90%;
-    max-width: 960px;
+    max-width: 1024px; /* Wider max width */
 }
 
 /* Table Styles */
 .leaderboard {
     width: 100%;
     border-collapse: collapse;
+    margin-bottom: 20px; /* Space below table */
 }
 
 .leaderboard thead {
-    position: sticky; /* Make header sticky */
-    top: 0; /* Stick to top */
-    background-color: white; /* Ensure header is not transparent */
-    z-index: 1; /* Ensure header stays above table content */
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 1;
 }
 
 .leaderboard th,
 .leaderboard td {
-    padding: 12px;
+    padding: 12px 15px; /* More padding */
     text-align: left;
     border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd; /* Add right border */
+}
+.leaderboard th:last-child,
+.leaderboard td:last-child {
+    border-right: none; /* Remove last right border */
 }
 
 .leaderboard th {
     background-color: #f5f5f5;
     font-weight: bold;
+    color: #333;
 }
 
-.leaderboard tr:hover {
+.leaderboard tbody tr:hover {
     background-color: #f9f9f9;
+}
+.leaderboard tbody tr:nth-child(even) {
+    background-color: #fdfdfd;
 }
 
 /* Heading Style */
 h1 {
     text-align: center;
-    margin: 0; /* Remove margin to bring closer to table */
-    padding: 20px 0; /* Add padding instead of margin */
+    margin: 0;
+    padding: 20px 0;
     font-size: 2em;
     color: #333;
 }
 h2 {
     text-align: center;
     font-size:medium;
-    font-family: cursive;
+    /* Removed cursive font */
     color: #333;
+    margin-bottom: 15px;
 }
 
 /* Modal/Banner Styles */
@@ -96,33 +113,38 @@ h2 {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
     z-index: 1000;
+    
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
     position: relative;
     background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
+    padding: 25px; /* More padding */
+    border: 1px solid #ccc; /* Softer border */
+    width: 90%; /* Responsive width */
     max-width: 500px;
     border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2); /* Stronger shadow */
+    /* Remove fixed margin: 15% auto; as flexbox handles centering */
 }
 
 .close {
     position: absolute;
     top: 10px;
     right: 15px;
-    color: #636262;
-    font-size: 28px;
+    color: #aaa; /* Lighter close */
+    font-size: 32px; /* Larger */
     font-weight: bold;
     cursor: pointer;
+    line-height: 1; /* Prevent extra space */
 }
 
 .close:hover {
-    color: black;
+    color: #333; /* Darker hover */
 }
 
 .modal-content form {
@@ -133,40 +155,105 @@ h2 {
 
 .modal-content label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px; /* More space */
     font-weight: bold;
     text-align: left;
+    color: #555; /* Slightly softer label color */
 }
 
-.modal-content input {
+.modal-content input[type="text"],
+.modal-content input[type="password"],
+.modal-content input[type="number"],
+.modal-content input[type="date"],
+.modal-content textarea,
+.modal-content select {
     width: 100%;
-    padding: 10px;
+    padding: 12px; /* More padding */
     margin-bottom: 15px;
-    border: 1px solid #ccc;
+    border: 1px solid #ccc; /* Softer border */
     border-radius: 4px;
+    font-size: 16px;
 }
 
-.modal-content button {
-    width: 30%;
-    padding: 10px;
-    background-color: #000000;
+.modal-content input:focus,
+.modal-content textarea:focus,
+.modal-content select:focus {
+     outline: none;
+     border-color: #888;
+     box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.modal-content button { /* Submit button inside modal */
+    display: block; /* Center button */
+    width: auto; /* Adjust width */
+     /* min-width: 120px;  Minimum width */
+    padding: 10px 20px;
+    background-color: #333; /* Darker button */
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-top: 10px;
+    margin: 20px auto 0; /* Center with margin */
+    font-size: 16px;
 }
 
 .modal-content button:hover {
-    background-color: #323232;
+    background-color: #555;
+}
+.modal-content p {
+    text-align: center;
+    margin: 10px 0;
+    color: #555;
 }
 
-.current-page {
-    padding: 5px 10px;
+/* Pagination */
+.pagination {
+    text-align: center;
+    padding: 20px 0;
+    margin-bottom: 40px; /* Space below pagination */
+}
+
+.pagination a,
+.pagination span {
+    display: inline-block;
+    padding: 8px 15px; /* More padding */
     margin: 0 5px;
-    background: #666;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #333;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.pagination a:hover {
+    background-color: #eee;
+}
+
+.pagination .current-page {
+    background: #555; /* Darker current page */
     color: white;
-    border-radius: 3px;
+    border-color: #555;
+}
+
+/* Theme Toggle Button Base Styles */
+#theme-toggle-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    background-color: #f0f0f0; /* Light mode background */
+    color: #333; /* Light mode text */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+#theme-toggle-button:hover {
+    background-color: #ddd;
 }
 
 /* Responsive Design */
@@ -198,14 +285,15 @@ h2 {
 
     .leaderboard td:nth-child(4), /* Hide City column */
     .leaderboard th:nth-child(4),
-    .leaderboard td:nth-child(3), /* Hide State column */
-    .leaderboard th:nth-child(3) {
+    .leaderboard td:nth-child(6), /* State */
+    .leaderboard th:nth-child(6) {
+        /* Assuming State is 6th column in track_report.html */
         display: none;
     }
 
     .modal-content {
-        width: 90%; /* Adjust modal width for tablets */
-        margin: 20% auto; /* Adjust top margin */
+        width: 85%;
+        padding: 20px;
     }
 
     h1 {
@@ -245,7 +333,6 @@ h2 {
     .modal-content {
         width: 95%;
         padding: 15px;
-        margin: 25% auto;
     }
 
     h1 {
@@ -258,83 +345,127 @@ h2 {
     .pagination a, .pagination span {
         margin-bottom: 5px; /* Add space if they wrap */
     }
+
+    /* Hide more columns on small mobile */
+    .leaderboard td:nth-child(3), /* Official Name */
+    .leaderboard th:nth-child(3) {
+        display: none;
+    }
+
+    /* Adjust pagination padding for smaller screens */
+    .pagination a, .pagination span {
+        padding: 6px 10px;
+        font-size: 14px;
+    }
 }
 
-/* Pagination Styles */
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 20px;
-}
+/* ================== */
+/* Dark Mode Styles   */
+/* ================== */
 
-.pagination a,
-.pagination span {
-    margin: 0 5px;
-    padding: 5px 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    text-decoration: none;
-    color: #333;
-}
-
-.pagination a:hover {
-    background-color: #f0f0f0;
-}
-
-#theme-toggle-button {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 10px 15px;
-    background-color: #f0f0f0; /* Light mode background */
-    color: #333; /* Light mode text */
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    cursor: pointer;
-    z-index: 1000; /* Ensure it's above other elements */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-/* Styles for dark mode */
 body.dark-mode {
-    background-color: #121212;
-    color: #e0e0e0;
+    background-color: #1a1a1a;
+    color: #f0f0f0;
 }
+
+/* Headings */
+body.dark-mode h1,
+body.dark-mode h2 {
+    color: #f5f5f5;
+}
+
+/* Header & Welcome */
 body.dark-mode .header {
-    background-color: #1e1e1e;
-    border-bottom: 1px solid #333;
+    background-color: #222;
+    border-bottom: 1px solid #444;
 }
+body.dark-mode .welcome-message {
+    color: #f0f0f0;
+}
+
+/* Buttons */
 body.dark-mode .button-primary {
-    background-color: #333;
-    color: #e0e0e0;
-    border: 1px solid #555;
+    background-color: #404040;
+    color: #f0f0f0;
+    border: 1px solid #666;
 }
 body.dark-mode .button-primary:hover {
-    background-color: #444;
+    background-color: #555;
+    border-color: #888;
+}
+
+/* Modals */
+body.dark-mode .modal {
+    background-color: rgba(0, 0, 0, 0.75); /* Darker overlay */
 }
 body.dark-mode .modal-content {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
+    background-color: #2c2c2c;
+    color: #f0f0f0;
     border: 1px solid #444;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
-body.dark-mode input[type="text"],
-body.dark-mode input[type="password"] {
-    background-color: #333;
-    color: #e0e0e0;
+body.dark-mode .modal-content label {
+    color: #e0e0e0; /* Brighter labels */
+    font-weight: normal; /* Consistent weight */
+}
+body.dark-mode .modal-content input[type="text"],
+body.dark-mode .modal-content input[type="password"],
+body.dark-mode .modal-content input[type="number"],
+body.dark-mode .modal-content input[type="date"],
+body.dark-mode .modal-content textarea,
+body.dark-mode .modal-content select {
+    background-color: #383838;
+    color: #f0f0f0;
     border: 1px solid #555;
 }
+/* Placeholder text color */
+body.dark-mode ::-webkit-input-placeholder { color: #aaa; }
+body.dark-mode ::-moz-placeholder { color: #aaa; opacity: 1; } /* Firefox needs opacity */
+body.dark-mode :-ms-input-placeholder { color: #aaa; }
+body.dark-mode :-moz-placeholder { color: #aaa; opacity: 1; }
+
+body.dark-mode .modal-content input:focus,
+body.dark-mode .modal-content textarea:focus,
+body.dark-mode .modal-content select:focus {
+     border-color: #888;
+     box-shadow: 0 0 5px rgba(100, 100, 100, 0.2);
+}
+
+body.dark-mode .modal-content p {
+    color: #ccc; /* Lighter paragraph text */
+}
+body.dark-mode .close {
+    color: #bbb;
+}
+body.dark-mode .close:hover {
+    color: #fff;
+}
+body.dark-mode .modal-content button { /* Modal submit button */
+     background-color: #555;
+     color: #f0f0f0;
+}
+body.dark-mode .modal-content button:hover {
+    background-color: #777;
+}
+
+/* Tables */
 body.dark-mode .leaderboard {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
+    background-color: #222;
+    border: 1px solid #444;
+}
+body.dark-mode .leaderboard thead {
+    background-color: #333; /* Ensure sticky header gets bg */
 }
 body.dark-mode .leaderboard th {
     background-color: #333;
-    color: #f0f0f0;
+    color: #ffffff;
+    border-bottom: 1px solid #555;
+    border-right-color: #555; /* Match border color */
 }
 body.dark-mode .leaderboard td {
-    border-bottom: 1px solid #333;
-    border-right: 1px solid #333; /* Match border color */
+    border-bottom: 1px solid #444;
+    border-right-color: #444;
+    color: #e0e0e0;
 }
 body.dark-mode .leaderboard tbody tr:nth-child(even) {
     background-color: #2a2a2a;
@@ -342,16 +473,83 @@ body.dark-mode .leaderboard tbody tr:nth-child(even) {
  body.dark-mode .leaderboard tbody tr:hover {
     background-color: #383838;
 }
+
+/* Pagination */
 body.dark-mode .pagination a,
 body.dark-mode .pagination span {
     color: #e0e0e0;
+    background-color: #404040;
+    border: 1px solid #666;
+}
+body.dark-mode .pagination a:hover {
+    background-color: #555;
 }
 body.dark-mode .pagination .current-page {
-    background-color: #444;
-    border-color: #555;
+    background-color: #666;
+    border-color: #888;
+    color: #fff;
 }
-body.dark-mode #theme-toggle-button {
-     background-color: #333; /* Dark mode background */
-     color: #f0f0f0; /* Dark mode text */
+
+/* Report Form Specifics (using selectors likely from report.css) */
+/* These styles assume report.css might still be loaded, targeting its structure */
+body.dark-mode .table-container > form { /* Report form container override */
+    background-color: #2c2c2c !important; /* Force override if needed */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+body.dark-mode .form-grid label {
+    color: #e0e0e0; /* Use same color as modal labels */
+    font-weight: normal;
+}
+/* Override label styles specifically from report.css if necessary */
+body.dark-mode label {
+     color: #e0e0e0 !important;
+}
+
+body.dark-mode .form-grid input[type="text"],
+body.dark-mode .form-grid input[type="number"],
+body.dark-mode .form-grid input[type="date"],
+body.dark-mode .form-grid input[type="file"], /* Add file input */
+body.dark-mode .form-grid textarea,
+body.dark-mode .form-grid select.state-selector, /* Target specific classes */
+body.dark-mode .form-grid select.district-selector {
+     background-color: #383838;
+     color: #f0f0f0;
      border: 1px solid #555;
+}
+
+body.dark-mode .form-grid input:focus,
+body.dark-mode .form-grid textarea:focus,
+body.dark-mode .form-grid select:focus {
+    border-color: #888; /* Match modal focus */
+    box-shadow: 0 0 5px rgba(100, 100, 100, 0.2);
+}
+
+body.dark-mode .state-selector,
+body.dark-mode .district-selector {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23cccccc' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 16px 12px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+/* Style options within select */
+body.dark-mode select option {
+    background-color: #383838;
+    color: #f0f0f0;
+}
+
+body.dark-mode .table-container label:has(+ input:optional)::after { /* Optional label text */
+    color: #aaa;
+}
+
+/* Theme Toggle Button */
+body.dark-mode #theme-toggle-button {
+     background-color: #333;
+     color: #f0f0f0;
+     border: 1px solid #555;
+}
+body.dark-mode #theme-toggle-button:hover {
+    background-color: #444;
 }

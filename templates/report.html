@@ -16,7 +16,7 @@
         const banner = document.getElementById('bribeReportedBanner');
         if (reportingIdElem && banner) {
             reportingIdElem.textContent = bribeId;
-            banner.style.display = 'block';
+            banner.style.display = 'flex';
         } else {
             alert('Bribe reported, but could not display Reporting ID banner.');
         }
@@ -148,17 +148,14 @@
         <button type="submit" class="button-primary">Submit Report</button>
     </form>
 </div>
-<script>
-
-</script>
-</div>
 
 <!-- Bribe Reported Banner -->
-<div id="bribeReportedBanner" class="modal" style="display:none;">
+<div id="bribeReportedBanner" class="modal">
     <div class="modal-content">
         <span class="close" onclick="hideBribeReportedBanner()">&times;</span>
         <h2 style="color: green; margin-bottom: 15px;">Bribe Reported Successfully!</h2>
         <p style="text-align: center;">Your Reporting ID is:  <span id="bribeReportSuccessId"></span></p>
+        <br>
         <p>Use this Reporting ID or your username to track bribes later </p>
     </div>
 </div>

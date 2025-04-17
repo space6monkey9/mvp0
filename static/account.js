@@ -1,5 +1,5 @@
 function showUsernameForm() {
-    document.getElementById('usernameBanner').style.display = 'block';
+    document.getElementById('usernameBanner').style.display = 'flex';
     const form = document.getElementById('usernameForm');
     form.reset();
 
@@ -29,7 +29,7 @@ function showSigninForm(title = "Sign-in to Report", reportingId = null) {
         if (heading) {
             heading.textContent = title;
         }
-        banner.style.display = 'block';
+        banner.style.display = 'flex';
     }
     const form = document.getElementById('signinForm');
     form.reset();
@@ -351,40 +351,53 @@ document.addEventListener('DOMContentLoaded', (event) => {
         console.error("#refreshSuggestions button element not found.");
     }
 
+    const isDarkMode = document.body.classList.contains('dark-mode');
     const styleSheet = document.styleSheets[0];
+
+    const lightModeCss = `
+        #usernameBanner .username-feedback { margin-top: 5px; font-size: 0.9em; min-height: 25px; display: flex; align-items: center; flex-wrap: wrap; }
+        #usernameBanner #usernameAvailabilityStatus { margin-right: 10px; font-weight: bold; flex-shrink: 0; }
+        #usernameBanner #usernameSuggestions { display: inline-flex; gap: 5px; flex-grow: 1; }
+        #usernameBanner .suggestion-item { display: inline-block; padding: 3px 8px; margin: 2px 4px 2px 0; background-color: #eee; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 0.9em; transition: background-color 0.2s ease; }
+        #usernameBanner .suggestion-item:hover { background-color: #ddd; }
+        #usernameBanner #refreshSuggestions { margin-left: 5px; cursor: pointer; font-size: 1.2em; padding: 0 5px; vertical-align: middle; border: none; background: none; color: #555; flex-shrink: 0; }
+        #usernameBanner #refreshSuggestions:hover { color: #000; }
+        #usernameBanner #addText { color: #555; margin-right: 5px; font-weight:500; }
+    `;
+
+    const darkModeCss = `
+        #usernameBanner .username-feedback { margin-top: 5px; font-size: 0.9em; min-height: 25px; display: flex; align-items: center; flex-wrap: wrap; }
+        #usernameBanner #usernameAvailabilityStatus { margin-right: 10px; font-weight: bold; flex-shrink: 0; }
+        #usernameBanner #usernameSuggestions { display: inline-flex; gap: 5px; flex-grow: 1; }
+        #usernameBanner .suggestion-item { display: inline-block; padding: 3px 8px; margin: 2px 4px 2px 0; background-color: #444; color: #e0e0e0; border: 1px solid #666; border-radius: 4px; cursor: pointer; font-size: 0.9em; transition: background-color 0.2s ease; }
+        #usernameBanner .suggestion-item:hover { background-color: #555; }
+        #usernameBanner #refreshSuggestions { margin-left: 5px; cursor: pointer; font-size: 1.2em; padding: 0 5px; vertical-align: middle; border: none; background: none; color: #aaa; flex-shrink: 0; }
+        #usernameBanner #refreshSuggestions:hover { color: #fff; }
+        #usernameBanner #addText { color: #aaa; margin-right: 5px; font-weight:500; }
+    `;
+
+    const cssToInject = isDarkMode ? darkModeCss : lightModeCss;
+
     if (styleSheet) {
         try {
-            // Using more specific selectors and consolidating rules
-             styleSheet.insertRule(`
-                 #usernameBanner .username-feedback { margin-top: 5px; font-size: 0.9em; min-height: 25px; display: flex; align-items: center; flex-wrap: wrap; }
-             `, styleSheet.cssRules.length);
-             styleSheet.insertRule(`
-                 #usernameBanner #usernameAvailabilityStatus { margin-right: 10px; font-weight: bold; flex-shrink: 0; }
-             `, styleSheet.cssRules.length);
-             styleSheet.insertRule(`
-                 #usernameBanner #usernameSuggestions { display: inline-flex; gap: 5px; flex-grow: 1; }
-             `, styleSheet.cssRules.length);
-             styleSheet.insertRule(`
-                 #usernameBanner .suggestion-item { display: inline-block; padding: 3px 6px; background-color: #e0e0e0; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
-             `, styleSheet.cssRules.length);
-             styleSheet.insertRule(`
-                 #usernameBanner .suggestion-item:hover { background-color: #c0c0c0; }
-             `, styleSheet.cssRules.length);
-
+            const rules = cssToInject.trim().split('}');
+            rules.forEach(rule => {
+                if (rule.trim()) {
+                    styleSheet.insertRule(rule.trim() + '}', styleSheet.cssRules.length);
+                }
+            });
 
         } catch (e) {
-            console.error("Could not insert CSS rules:", e);
-            // Fallback
+            console.error("Could not insert CSS rules via insertRule:", e);
             const style = document.createElement('style');
-            style.textContent = `
-                 #usernameBanner .username-feedback { margin-top: 5px; font-size: 0.9em; min-height: 25px; display: flex; align-items: center; flex-wrap: wrap; }
-                 #usernameBanner #usernameAvailabilityStatus { margin-right: 10px; font-weight: bold; flex-shrink: 0; }
-                 #usernameBanner #usernameSuggestions { display: inline-flex; gap: 5px; flex-grow: 1; }
-                 #usernameBanner #refreshSuggestions { margin-left: 5px; cursor: pointer; font-size: 1.2em; padding: 0 5px; vertical-align: middle; border: none; background: none; flex-shrink: 0; }
-                 #usernameBanner .suggestion-item { display: inline-block; padding: 3px 6px; background-color: #e0e0e0; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
-                 #usernameBanner .suggestion-item:hover { background-color: #c0c0c0; }
-            `;
+            style.textContent = cssToInject;
             document.head.appendChild(style);
         }
-    } 
+    } else {
+         console.error("Stylesheet not found for CSS rule injection.");
+         const style = document.createElement('style');
+         style.textContent = cssToInject;
+         document.head.appendChild(style);
+         console.log("CSS rules injected via fallback <style> tag (no stylesheet found).");
+    }
 });

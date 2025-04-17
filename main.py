@@ -10,7 +10,6 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 from supabase import create_async_client
 from typing import List
-import datetime
 from supabase import SupabaseAuthClient
 from pydantic import BaseModel, constr
 import logging
@@ -272,7 +271,7 @@ async def report_bribe(
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == username)).first()
 
-        if official is '':
+        if official == '':
             official = "*UNKNOWN"
 
         parsed_date = None
