@@ -13,7 +13,8 @@ from typing import List
 from supabase import SupabaseAuthClient
 from pydantic import BaseModel, constr
 import logging
-
+from fastapi.middleware.wsgi import WSGIMiddleware
+from graph import app as dash_app
 
 # configure logging
 logging.basicConfig(
@@ -60,9 +61,13 @@ app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Mount the Dash app server using WSGIMiddleware
+app.mount("/stats", WSGIMiddleware(dash_app.server), name="stats")
+logger.info("Dash App mounted successfully.")
+
 templates = Jinja2Templates(directory="templates")
 
-SQLModel.metadata.create_all(engine)
+#SQLModel.metadata.create_all(engine)
 
 # Dependency to get current user from Supabase session
 async def get_current_user(
@@ -226,6 +231,13 @@ async def index(
                 "current_user": current_user,
             },
         )
+    
+# route to redirect to the mounted Dash app
+@app.get("/stats_page")
+async def stats_page_redirect(request: Request):
+    # The URL should be the prefix used in graph.py
+    logger.info("Redirecting to Dash stats page at /stats")
+    return RedirectResponse(url="/stats")
 
 @app.get("/report")
 async def report(
@@ -284,6 +296,9 @@ async def report_bribe(
                 return JSONResponse(
                     {"error": "Invalid date format"}, status_code=422
                 )  # Return error if date format is invalid
+            
+        # Normalize department input 
+        dept_name = ''.join(filter(str.isalpha, department.strip().split()[0])).upper()
 
         # generate bribe_id
         import uuid
@@ -321,7 +336,7 @@ async def report_bribe(
 
         bribe = Bribe(
             ofcl_name=official,
-            dept=department,
+            dept=dept_name,
             bribe_amt=amount,
             pin_code=pincode,
             state_ut=state,
@@ -808,3 +823,4 @@ async def signout(request: Request, current_supabase_client: create_async_client
         )
         # Still redirect even if Supabase signout fails, as local session is cleared
         return RedirectResponse(url="/", status_code=303)
+

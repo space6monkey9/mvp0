@@ -81,7 +81,7 @@
         {% endif %}
         {% endblock %}
         <div class="header-buttons" >
-            <button class="button-primary" style="margin-left: auto;">Check Stats</button>
+            <a href="/stats_page"><button class="button-primary" style="margin-left: auto;"> Check Stats </button></a>
             {% if current_user %}
             <button onclick="showTrackBribeForm()" class="button-primary"> Search </button>
             {% else %}
