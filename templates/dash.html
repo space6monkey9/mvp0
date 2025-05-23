@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block extra_js %}
+<script src="/static/track_bribe.js"></script>
+<script src="/static/account.js"> </script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
+<script src="/static/stats.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block button %}
+<div class="subheader">
+    <a href="/"> <button class="button-primary"> Home </button></a> 
+    {% if current_user %}
+    {% block report_bribe %}
+    <a href="/report"> <button class="button-primary">Report Bribe</button></a>
+    {% endblock %}
+    {% else %}
+        
+        <button onclick="showSigninForm('Sign-in to Report Bribe')" class="button-primary">Sign-in to Report</button>
+    {% endif %} 
+</div>
+{% block welcome_message %}
+   {% if current_user %}
+    <span class="welcome-message">Welcome, 
+    <form action="/track_bribe" method="POST" style="display: inline;">
+        <input type="hidden" name="username" value="{{ current_user.user_metadata.get('username', 'User') }}">
+        <button type="submit" class="button-primary">{{ current_user.user_metadata.get('username', 'User') }}</button>
+    </form>!
+    </span>
+    {% else %}
+    <span class="welcome-message">Welcome!</span>
+   {% endif %}
+{% endblock %}
+{% endblock %}
+
+{% block stats %}
+{% if current_user %}
+<form action="/signout" method="post" style="display: inline;">
+    <button type="submit" class="button-primary">Sign-out</button>
+ </form>
+{% else %}
+     <button onclick="showUsernameForm()" class="button-primary"> Create Account </button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>Bribe Analytics Dashboard</h1>
+<h2>Interesting datapoints to explore</h2>
+
+<div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <label style="margin-right: 8px;">Graphs: </label>
+        <div style="width: 200px;">
+            <select id="dropdown" class="dash-dropdown" style="border: 1px solid #ccc; padding: 5px; border-radius: 4px; width: 100%;">
+                <option value="1" selected>Bribe distribution</option>
+                <option value="2">State wise Bribe data</option>
+                <option value="3">Bribes over time</option>
+                <option value="4">Top 20 Districts</option>
+                <option value="5">Top 20 Departments</option>
+            </select>
+        </div>
+    </div>
+    
+    <div id="Graphs" style="width:1000px; height:500px; display: flex; justify-content: center; align-items: center; margin-top: 20px;"></div>
+</div>
+
+{% endblock %}

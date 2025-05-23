@@ -58,6 +58,10 @@ function handleTrackBribeSubmit(event) {
     })
     .then(html => {
         document.body.innerHTML = html;
+        // Re-initialize theme toggle after DOM update
+        if (typeof initThemeToggle === 'function') {
+           initThemeToggle();
+        }
     })
     
     .catch(error => {

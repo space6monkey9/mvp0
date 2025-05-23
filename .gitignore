@@ -3,3 +3,4 @@ logs_result.json
 /venv/
 /__pycache__/
 /.pytest_cache/
+/dashboard/

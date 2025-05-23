@@ -9,6 +9,7 @@
     {% endblock %}
     <link rel="stylesheet" href="/static/styles.css">
     {% block extra_css %}{% endblock %}
+    <script src="/static/theme_toggle.js"></script>
     {% block extra_js %}
     <script src="/static/track_bribe.js"></script>
     <script src="/static/account.js"> </script>
@@ -18,39 +19,20 @@
     <!-- Theme Toggle Button -->
     <button id="theme-toggle-button">Toggle Theme</button>
     <script>
-
         document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('signinBanner').style.display = 'none'; 
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('usernameBannerr').style.display = 'none'; 
-        });
-
-        const themeToggleButton = document.getElementById('theme-toggle-button');
-        const currentTheme = localStorage.getItem('theme');
-
-        // Apply saved theme on initial load
-        if (currentTheme === 'dark') {
-            document.body.classList.add('dark-mode');
-            themeToggleButton.textContent = 'Light Mode'; 
-        } else {
-            themeToggleButton.textContent = 'Dark Mode'; 
-        }
-
-        themeToggleButton.addEventListener('click', () => {
-            // Toggle the .dark-mode class on the body
-            document.body.classList.toggle('dark-mode');
-
-            // Update localStorage and button text
-            let theme = 'light';
-            if (document.body.classList.contains('dark-mode')) {
-                theme = 'dark';
-                themeToggleButton.textContent = 'Light Mode';
-            } else {
-                 themeToggleButton.textContent = 'Dark Mode';
+            console.log('DOMContentLoaded fired.'); // Check if event listener fires
+            
+            // Hide sign-in banner if present
+            const signinBanner = document.getElementById('signinBanner');
+            if (signinBanner) {
+                signinBanner.style.display = 'none';
             }
-            localStorage.setItem('theme', theme);
+
+            // Hide username banner if present
+            const usernameBanner = document.getElementById('usernameBanner');
+            if (usernameBanner) {
+                usernameBanner.style.display = 'none';
+            }
         });
     </script>
 
@@ -81,7 +63,9 @@
         {% endif %}
         {% endblock %}
         <div class="header-buttons" >
+            {% block stats %}
             <a href="/stats_page"><button class="button-primary" style="margin-left: auto;"> Check Stats </button></a>
+            {% endblock %}
             {% if current_user %}
             <button onclick="showTrackBribeForm()" class="button-primary"> Search </button>
             {% else %}

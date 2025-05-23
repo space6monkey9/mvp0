@@ -6,6 +6,7 @@ from db import engine
 from models import User, Bribe
 from sqlmodel import Session, select, func, SQLModel
 import datetime
+from sqlmodel import text
 from starlette.middleware.sessions import SessionMiddleware
 import os
 from supabase import create_async_client
@@ -13,8 +14,7 @@ from typing import List
 from supabase import SupabaseAuthClient
 from pydantic import BaseModel, constr
 import logging
-from fastapi.middleware.wsgi import WSGIMiddleware
-from graph import app as dash_app
+import pandas as pd
 
 # configure logging
 logging.basicConfig(
@@ -60,10 +60,6 @@ else:
 app.add_middleware(SessionMiddleware, secret_key=os.environ.get("secret_key"))
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Mount the Dash app server using WSGIMiddleware
-app.mount("/stats", WSGIMiddleware(dash_app.server), name="stats")
-logger.info("Dash App mounted successfully.")
 
 templates = Jinja2Templates(directory="templates")
 
@@ -180,6 +176,18 @@ async def get_current_user(
             request.session.pop("supabase_session", None)
             await current_supabase_client.auth.sign_out()
             return None
+        
+async def get_df(query: str, params: dict = None):
+    try:
+        with Session(engine) as session:
+            rows = session.exec(text(query).params(params)) if params else session.exec(text(query))
+            logger.info("Suucessfully executed query")
+            if not rows:
+                return pd.DataFrame()
+            return pd.DataFrame(rows)
+    except Exception as e:
+        logger.error(f"Error in get_df: {e}", exc_info=True)
+        return pd.DataFrame()
 
 @app.get("/")
 async def index(
@@ -234,10 +242,10 @@ async def index(
     
 # route to redirect to the mounted Dash app
 @app.get("/stats_page")
-async def stats_page_redirect(request: Request):
+async def stats_page_redirect(request: Request, current_user: SupabaseAuthClient | None = Depends(get_current_user)):
     # The URL should be the prefix used in graph.py
     logger.info("Redirecting to Dash stats page at /stats")
-    return RedirectResponse(url="/stats")
+    return templates.TemplateResponse("dash.html", {"request": request, "current_user": current_user})
 
 @app.get("/report")
 async def report(
@@ -824,3 +832,184 @@ async def signout(request: Request, current_supabase_client: create_async_client
         # Still redirect even if Supabase signout fails, as local session is cleared
         return RedirectResponse(url="/", status_code=303)
 
+@app.get("/stats_data")
+async def stats_data(request: Request, graph: str ):
+
+    try:
+        if graph == "1":
+            query="SELECT bribe_amt FROM bribe;"
+            df= await get_df(query)
+            if df.empty :
+                print("No data available for bribe amount distribution.")
+                return None #return an empty figure
+            
+            bin_edges = [0, 500, 1000, 1500, 2000, 3000, 5000, 10000, 20000, 30000, 40000, 50000, float('inf')]
+            # labels for the bins
+            bin_labels = [
+                '₹1-500', '₹501-1000', '₹1001-1500', '₹1501-2000', '₹2001-3000',
+                '₹3001-5000', '₹5001-10000', '₹10001-20000', '₹20001-30000',
+                '₹30001-40000', '₹40001-50000', '>₹50000'
+            ]
+
+            # Create a new column with the bin category for each bribe amount
+            # 'right=True' means bins include the right edge 
+            df['bribe_range'] = pd.cut(df['bribe_amt'], bins=bin_edges, labels=bin_labels, right=True)
+
+            # Count the frequency of reports in each bin
+            bribe_counts = df['bribe_range'].value_counts().reset_index()
+            bribe_counts.columns = ['Bribe Amount Range', 'Number of Reports']
+
+            # Ensure the categories are ordered correctly for the plot
+            bribe_counts['Bribe Amount Range'] = pd.Categorical(bribe_counts['Bribe Amount Range'], categories=bin_labels, ordered=True)
+            bribe_counts = bribe_counts.sort_values('Bribe Amount Range')
+            
+            x = bribe_counts['Bribe Amount Range'].tolist()
+            y = bribe_counts['Number of Reports'].tolist()
+            plotly_data = {
+                "data": [{
+                   "x": x,
+                   "y": y,
+                   "type": "bar"
+                }],
+                "layout": {
+                   "title": "Bribe Distribution",
+                   "xaxis": {"title": "Bribe Amount Range"},
+                   "yaxis": {"title": "Number of Reports"}
+                }
+            }
+
+            return JSONResponse(plotly_data)
+        
+        elif graph == "2":
+            query = """
+                SELECT state_ut, SUM(bribe_amt) AS total_amount
+                FROM bribe
+                GROUP BY state_ut
+                ORDER BY total_amount DESC;
+            """
+            df = await get_df(query)
+
+            if df.empty or 'state_ut' not in df.columns or 'total_amount' not in df.columns:
+                print("No data available for total bribe amount by state.")
+                return None
+            
+            x = df['state_ut'].tolist()
+            y = df['total_amount'].tolist()
+            
+            plotly_data = {
+                "data": [{
+                    "type": "bar",
+                    "x": x,
+                    "y": y
+                }],
+                "layout": {
+                    "title": "Total Bribe Amount by State/UT",
+                    "xaxis": {"title": "State/UT"},
+                    "yaxis": {"title": "Total Bribe Amount"}
+                }
+            }
+
+            return JSONResponse(plotly_data)
+        
+        elif graph == "3":
+            query = "SELECT doi FROM bribe WHERE doi IS NOT NULL;"
+            df = await get_df(query)
+
+            if df.empty or 'doi' not in df.columns:
+                print("No data with dates available for bribes over time.")
+                return None
+
+            # Ensure 'doi' is datetime type and handle potential errors
+            df['doi'] = pd.to_datetime(df['doi'], errors='coerce')
+            df.dropna(subset=['doi'], inplace=True)  # Drop rows where conversion failed
+
+            if df.empty:
+                print("No valid dates found after conversion.")
+                return None
+
+            # Aggregate by month
+            df['month_year'] = df['doi'].dt.to_period('M').astype(str)  # Group by month-year string
+            monthly_counts = df.groupby('month_year').size().reset_index(name='count')
+            monthly_counts = monthly_counts.sort_values('month_year')  # Ensure chronological order
+
+            x = monthly_counts['month_year'].tolist()
+            y = monthly_counts['count'].tolist()
+            plotly_data = {
+                "data": [{
+                    "x": x,
+                    "y": y,
+                    "type": "line"
+                }],
+                "layout": {
+                    "title": "Bribes Over Time",
+                    "xaxis": {"title": "Month-Year"},
+                    "yaxis": {"title": "Number of Reports"}
+                }
+            }
+
+            return JSONResponse(plotly_data)
+        
+        elif graph == "4":
+            query = """
+                SELECT district, SUM(bribe_amt) AS total_amount
+                FROM bribe
+                GROUP BY district
+                ORDER BY total_amount DESC
+                LIMIT :limit;
+            """
+            df = await get_df(query, {"limit": 20})
+
+            if df.empty or 'district' not in df.columns or 'total_amount' not in df.columns:
+                print("No data available for top 20 districts by bribe amount.")
+                return None
+
+            x = df['district'].tolist()
+            y = df['total_amount'].tolist()
+            plotly_data = {
+                "data": [{
+                    "type": "bar",
+                    "x": x,
+                    "y": y
+                }],
+                "layout": {
+                    "title": "Top 20 Districts by Bribe Amount",
+                    "xaxis": {"title": "Districts"},
+                    "yaxis": {"title": "Total Bribe Amount"}
+                }
+            }
+
+            return JSONResponse(plotly_data)
+        
+        elif graph == "5":
+            query = """
+                SELECT dept, SUM(bribe_amt) AS total_amount
+                FROM bribe
+                GROUP BY dept
+                ORDER BY total_amount DESC
+                LIMIT :limit;
+            """
+            df = await get_df(query, {"limit": 20})
+
+            if df.empty or 'dept' not in df.columns or 'total_amount' not in df.columns:
+                print("No data available for top 20 departments by bribe amount.")
+                return None
+            
+            x = df['dept'].tolist()
+            y = df['total_amount'].tolist()
+            plotly_data = {
+                "data": [{
+                    "type": "bar",
+                    "x": x,
+                    "y": y
+                }],
+                "layout": {
+                    "title": "Top 20 Departments by Bribe Amount",
+                    "xaxis": {"title": "Departments"},  
+                    "yaxis": {"title": "Total Bribe Amount"}
+                }
+            }
+
+            return JSONResponse(plotly_data)
+        
+    except Exception as e:
+        logger.error(f"Error in stats_data: {e}", exc_info=True)
